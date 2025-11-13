@@ -1,0 +1,474 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  CLIENT
+  DEVELOPER
+  ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  READY_FOR_REVIEW
+  APPROVED
+  DISPUTED
+  REJECTED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum TransactionStatus {
+  PENDING
+  HELD_IN_ESCROW
+  RELEASED
+  REFUNDED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED_DEVELOPER_WINS
+  RESOLVED_CLIENT_WINS
+  CLOSED
+}
+
+enum Skill {
+  // Frontend Skills
+  REACT
+  VUE_JS
+  ANGULAR
+  JAVASCRIPT
+  TYPESCRIPT
+  TAILWIND_CSS
+  SASS
+  ACCESSIBILITY_A11Y
+  NEXT_JS
+  HTML_CSS
+  
+  // Backend Skills
+  NODE_JS
+  PYTHON_DJANGO
+  PYTHON_FLASK
+  PHP_LARAVEL
+  RUBY_ON_RAILS
+  GO
+  POSTGRESQL
+  MYSQL
+  MONGODB
+  AWS
+  AZURE
+  RESTFUL_APIS
+  GRAPHQL
+  
+  // UI/UX Skills
+  FIGMA
+  SKETCH
+  ADOBE_XD
+  PROTOTYPING
+  USER_RESEARCH
+  WIREFRAMING
+  DESIGN_SYSTEMS
+}
+
+// ============================================
+// USER MODELS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String    // Hashed password
+  name          String?
+  role          UserRole
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Admin-specific fields
+  isSuperAdmin  Boolean   @default(false) // Platform owner/creator
+  
+  // Account management (admin-controlled)
+  isSuspended   Boolean   @default(false)
+  suspendedAt   DateTime?
+  suspendedBy   String?   // Admin user ID who suspended
+  suspensionReason String? @db.Text
+  
+  // Relations
+  developerProfile DeveloperProfile?
+  clientProjects   Project[]           @relation("ClientProjects")
+  sentMessages     Message[]            @relation("SentMessages")
+  receivedMessages  Message[]           @relation("ReceivedMessages")
+  disputes         Dispute[]           @relation("ClientDisputes")
+  developerDisputes Dispute[]          @relation("DeveloperDisputes")
+  reviewedDisputes Dispute[]           @relation("AdminDisputes") // Admin as technical reviewer
+  adminActivities  AdminActivity[]      @relation("AdminActivities") // Admin activity log
+  
+  @@index([email])
+  @@index([role])
+  @@index([isSuperAdmin])
+}
+
+model DeveloperProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Required fields from ideation
+  portfolioUrl  String    // Portfolio link (mandatory)
+  bioSummary    String    @db.VarChar(400) // Max 400 characters
+  location      String    // Location (mandatory)
+  timeZone      String?   // Optional timezone
+  
+  // Skills - exactly 5 skills required
+  skills        Skill[]   // Array of 5 skills
+  
+  // Stripe Connect integration
+  stripeAccountId     String?   @unique // Stripe Connect account ID
+  stripeOnboardingComplete Boolean @default(false)
+  
+  // Earnings tracking
+  totalEarnings        Decimal   @default(0) @db.Decimal(10, 2)
+  totalProjects        Int       @default(0)
+  completedProjects    Int       @default(0)
+  
+  // Profile status
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  verifiedAt    DateTime? // When admin verified the profile
+  verifiedBy    String?   // Admin user ID who verified
+  
+  // Account management (admin-controlled)
+  isSuspended   Boolean   @default(false)
+  suspendedAt   DateTime?
+  suspendedBy   String?   // Admin user ID who suspended
+  suspensionReason String? @db.Text
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  proposals     Proposal[]
+  transactions  Transaction[]
+  
+  @@index([userId])
+  @@index([stripeAccountId])
+}
+
+// ============================================
+// PROJECT MODELS
+// ============================================
+
+model Project {
+  id            String    @id @default(cuid())
+  clientId      String
+  client        User      @relation("ClientProjects", fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Project details
+  title         String
+  description   String    @db.Text
+  budget        Decimal   @db.Decimal(10, 2) // Total fixed budget
+  deadline      DateTime
+  
+  // Project type
+  skillType     String    // Frontend, Backend, Fullstack, or UI/UX
+  
+  // Status
+  status        ProjectStatus @default(DRAFT)
+  
+  // Selected developer (if proposal accepted)
+  selectedDeveloperId String?
+  selectedProposalId  String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  milestones    Milestone[]
+  proposals     Proposal[]
+  messages      Message[]
+  transactions  Transaction[]
+  disputes      Dispute[]
+  
+  @@index([clientId])
+  @@index([status])
+  @@index([selectedDeveloperId])
+}
+
+model Milestone {
+  id            String    @id @default(cuid())
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Milestone details (from Scope Bar)
+  title         String
+  definitionOfDone String @db.Text // Objective, measurable criteria
+  paymentPercentage Decimal @db.Decimal(5, 2) // Percentage of total budget (e.g., 20.00 for 20%)
+  
+  // Status tracking
+  status        MilestoneStatus @default(PENDING)
+  
+  // Completion tracking
+  completedAt   DateTime?
+  approvedAt    DateTime?
+  disputedAt    DateTime?
+  
+  // Order/sequence
+  order         Int       // 1, 2, 3, etc. for milestone sequence
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  transactions  Transaction[]
+  disputes      Dispute[]
+  
+  @@index([projectId])
+  @@index([status])
+  @@unique([projectId, order])
+}
+
+model Proposal {
+  id            String    @id @default(cuid())
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  developerId   String
+  developer     DeveloperProfile @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  
+  // Proposal details
+  rate          Decimal?  @db.Decimal(10, 2) // Optional rate (if hourly)
+  estimatedTime String?   // Estimated completion time
+  message       String    @db.Text // Custom message from developer
+  
+  // Status
+  status        ProposalStatus @default(PENDING)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([developerId])
+  @@index([status])
+  @@unique([projectId, developerId]) // One proposal per developer per project
+}
+
+// ============================================
+// PAYMENT & TRANSACTION MODELS
+// ============================================
+
+model Transaction {
+  id            String    @id @default(cuid())
+  
+  // Relations
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  milestoneId   String?
+  milestone     Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  
+  developerId   String
+  developer     DeveloperProfile @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  amount        Decimal   @db.Decimal(10, 2) // Amount in escrow/released
+  webbidevFee   Decimal   @db.Decimal(10, 2) // 10-13% commission
+  developerPayout Decimal @db.Decimal(10, 2) // Amount developer receives (amount - fee)
+  
+  // Stripe integration
+  stripePaymentIntentId String? @unique
+  stripeTransferId      String? // Stripe Connect transfer ID
+  
+  // Status
+  status        TransactionStatus @default(PENDING)
+  
+  // Timestamps
+  heldAt        DateTime? // When funds were held in escrow
+  releasedAt    DateTime? // When funds were released to developer
+  refundedAt    DateTime?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([developerId])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+}
+
+// ============================================
+// COMMUNICATION MODELS
+// ============================================
+
+model Message {
+  id            String    @id @default(cuid())
+  projectId     String?   // Optional - for direct messages
+  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  senderId      String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  recipientId   String?   // For direct messages (optional - if null, it's a project message)
+  recipient     User?     @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  
+  subject       String?   // For direct messages
+  content       String    @db.Text
+  attachments   String[]  // Array of file URLs (optional)
+  
+  // Message status
+  isRead        Boolean   @default(false)
+  readAt        DateTime?
+  
+  // For dispute resolution - mark important messages
+  isEvidence    Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([createdAt])
+  @@index([isRead])
+}
+
+// ============================================
+// DISPUTE MODELS (Scope Bar)
+// ============================================
+
+model Dispute {
+  id            String    @id @default(cuid())
+  
+  // Relations
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  milestoneId   String
+  milestone     Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  
+  clientId      String
+  client        User      @relation("ClientDisputes", fields: [clientId], references: [id], onDelete: Cascade)
+  
+  developerId   String
+  developer     User      @relation("DeveloperDisputes", fields: [developerId], references: [id], onDelete: Cascade)
+  
+  // Admin/Technical Reviewer
+  reviewerId    String?   // Admin who reviews the dispute
+  reviewer      User?     @relation("AdminDisputes", fields: [reviewerId], references: [id], onDelete: SetNull)
+  
+  // Dispute details
+  status        DisputeStatus @default(OPEN)
+  
+  // Evidence from both parties
+  clientStatement   String?  @db.Text
+  clientEvidence    String[] // Array of evidence URLs/links
+  
+  developerStatement String? @db.Text
+  developerEvidence  String[] // Array of evidence URLs/links
+  
+  // Technical reviewer decision (Admin decision)
+  reviewerDecision  String? @db.Text
+  reviewerDecisionAt DateTime?
+  
+  // Resolution
+  resolvedInFavorOf String? // "CLIENT" or "DEVELOPER"
+  
+  // Timestamps
+  openedAt      DateTime  @default(now())
+  inReviewAt    DateTime?
+  resolvedAt    DateTime?
+  closedAt      DateTime?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([status])
+  @@index([clientId])
+  @@index([developerId])
+  @@index([reviewerId])
+}
+
+// ============================================
+// PLATFORM MANAGEMENT MODELS (Admin)
+// ============================================
+
+model PlatformSettings {
+  id            String    @id @default(cuid())
+  
+  // Platform configuration
+  commissionRate Decimal  @default(0.13) @db.Decimal(5, 4) // 0.10 to 0.13 (10-13%)
+  platformName  String    @default("Webbidev")
+  platformTagline String? @db.VarChar(200)
+  
+  // Feature flags
+  registrationEnabled Boolean @default(true)
+  developerRegistrationEnabled Boolean @default(true)
+  clientRegistrationEnabled Boolean @default(true)
+  
+  // Maintenance mode
+  maintenanceMode Boolean @default(false)
+  maintenanceMessage String? @db.Text
+  
+  // Admin notes
+  notes         String?   @db.Text
+  
+  updatedBy     String?   // Admin user ID who last updated
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([id]) // Only one settings record
+}
+
+model AdminActivity {
+  id            String    @id @default(cuid())
+  
+  // Admin who performed the action
+  adminId       String
+  admin         User      @relation("AdminActivities", fields: [adminId], references: [id], onDelete: Cascade)
+  
+  // Action details
+  action        String    // e.g., "VERIFIED_DEVELOPER", "RESOLVED_DISPUTE", "SUSPENDED_USER"
+  targetType    String    // "USER", "PROJECT", "DISPUTE", "TRANSACTION", etc.
+  targetId      String    // ID of the target entity
+  
+  // Details
+  description   String?   @db.Text
+  metadata      Json?     // Additional data as JSON
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
