@@ -50,7 +50,7 @@ export default function Header({ className }: HeaderProps) {
             alt="Webbidev Logo" 
             width={150} 
             height={40} 
-            className="h-8 md:h-9 w-auto transition-transform duration-300 group-hover:scale-105" 
+            className="h-7 md:h-8 w-auto transition-transform duration-300 group-hover:scale-105" 
             priority 
           />
         </Link>
