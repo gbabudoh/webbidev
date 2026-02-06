@@ -158,17 +158,19 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      const zodError = error as unknown as { errors: unknown };
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: zodError.errors },
         { status: 400 }
       );
     }
 
     console.error('Error creating payment:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create payment';
     return NextResponse.json(
-      { error: error.message || 'Failed to create payment' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
@@ -182,7 +184,7 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId');
     const status = searchParams.get('status');
 
-    let where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (user.role === 'CLIENT') {
       // Clients see transactions for their projects
@@ -198,10 +200,8 @@ export async function GET(request: NextRequest) {
       });
 
       if (!developerProfile) {
-        return NextResponse.json(
-          { error: 'Developer profile not found' },
-          { status: 404 }
-        );
+        // No profile yet - return empty transactions
+        return NextResponse.json({ transactions: [] }, { status: 200 });
       }
 
       where.developerId = developerProfile.id;
@@ -250,10 +250,11 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ transactions }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching transactions:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch transactions';
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch transactions' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Input, Select, Button, Typography, Badge } from '@/components/ui';
 import { formatCurrency, formatDate, formatRelativeTime } from '@/lib/utils';
 
@@ -67,7 +66,7 @@ function ProjectsPageContent() {
     { value: 'UI/UX', label: 'UI/UX Design' },
   ];
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -92,13 +91,14 @@ function ProjectsPageContent() {
       }
 
       setProjects(fetchedProjects);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load projects');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load projects';
+      setError(errorMessage);
       setProjects([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, status, skillType]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -110,7 +110,7 @@ function ProjectsPageContent() {
 
   useEffect(() => {
     fetchProjects();
-  }, [status, skillType]);
+  }, [fetchProjects]);
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -139,19 +139,19 @@ function ProjectsPageContent() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <Typography variant="p" size="lg" color="muted">Loading projects...</Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -417,21 +417,21 @@ function ProjectsPageContent() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 
 export default function ClientProjectsPage() {
   return (
     <Suspense fallback={
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <Typography variant="p" size="lg">Loading...</Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     }>
       <ProjectsPageContent />
     </Suspense>

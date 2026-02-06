@@ -108,6 +108,7 @@ model User {
   password      String    // Hashed password
   name          String?
   role          UserRole
+  country       String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -470,5 +471,36 @@ model AdminActivity {
   @@index([action])
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+// ============================================
+// CONTENT MANAGEMENT MODELS (Landing Page)
+// ============================================
+
+model HeroContent {
+  id          String   @id @default(cuid())
+  badgeText   String   @default("The Next-Gen Developer Ecosystem")
+  headingPart1 String   @default("Think.")
+  headingPart2 String   @default("Build. Scale.")
+  description String   @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@unique([id])
+}
+
+model FloatingAsset {
+  id        String   @id @default(cuid())
+  type      String   // "IMAGE" or "ICON"
+  src       String?  // file path for images
+  iconName  String?  // Lucide icon name (e.g., "Code2")
+  alt       String?  // for images
+  color     String?  // for icons
+  size      Int      @default(40)
+  posX      String   // e.g., "50%"
+  posY      String   // e.g., "50%"
+  duration  Int      @default(12)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import ClientProfileForm from '@/components/features/profile/ClientProfileForm';
 import { Card, CardContent, CardHeader, CardTitle, Typography, Badge } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -49,8 +48,9 @@ export default function ClientProfilePage() {
 
       const data = await response.json();
       setProfile(data.profile);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load profile');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load profile';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -85,8 +85,9 @@ export default function ClientProfilePage() {
       setSuccess(true);
       
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save profile';
+      setError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -94,19 +95,19 @@ export default function ClientProfilePage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[600px]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <Typography variant="p" size="lg" color="muted">Loading profile...</Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -294,6 +295,6 @@ export default function ClientProfilePage() {
           isLoading={isSaving}
         />
       </div>
-    </DashboardLayout>
+    </>
   );
 }

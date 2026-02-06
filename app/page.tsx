@@ -1,480 +1,512 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useRef } from 'react';
-import PublicLayout from '@/components/layouts/PublicLayout';
-import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Typography, Badge } from '@/components/ui';
-import { cn } from '@/lib/utils';
+import { Badge, Button, Card, CardContent } from "@/components/ui";
+import { useScroll, useTransform, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import * as LucideIcons from "lucide-react";
+import { getHeroData } from "@/app/actions/hero";
+import PublicLayout from "@/components/layouts/PublicLayout";
+import Link from "next/link";
+import Image from "next/image";
+import { MessageSquare, Database, Layout, Figma, Smartphone, ArrowRight, Zap, Cpu } from "lucide-react";
+
+interface HeroContent {
+  id?: string;
+  badgeText?: string;
+  headingPart1?: string;
+  headingPart2?: string;
+  description?: string;
+  updatedAt?: Date;
+}
+
+interface FloatingAsset {
+  id?: string;
+  type: string;
+  src?: string | null;
+  iconName?: string | null;
+  alt?: string | null;
+  color?: string | null;
+  size: number;
+  posX: string;
+  posY: string;
+  duration: number;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Complex Wave Animation for Background
+const waveVariants = {
+  animate: {
+    x: [0, -100, 0],
+    transition: {
+      duration: 20,
+      repeat: Infinity,
+      ease: "linear" as const,
+    },
+  },
+};
+
+interface Feature {
+  title: string;
+  icon: React.ReactNode;
+  desc: string;
+  color: string;
+}
+
+const features: Feature[] = [
+  {
+    title: "Frontend Excellence",
+    icon: <Layout className="w-8 h-8 stroke-[2.5]" />,
+    desc: "Stunning, responsive interfaces built with modern frameworks.",
+    color: "bg-[#F3C36C]/30 text-[#D9A341]",
+  },
+  {
+    title: "Backend Mastery",
+    icon: <Database className="w-8 h-8 stroke-[2.5]" />,
+    desc: "Scalable, secure server-side logic and database architecture.",
+    color: "bg-[#BCEACF]/30 text-[#4D8C6D]",
+  },
+  {
+    title: "UI/UX Magic",
+    icon: <Figma className="w-8 h-8 stroke-[2.5]" />,
+    desc: "Human-centric design systems that convert and delight.",
+    color: "bg-[#AC9898]/30 text-[#735D5D]",
+  },
+  {
+    title: "Mobile First",
+    icon: <Smartphone className="w-8 h-8 stroke-[2.5]" />,
+    desc: "Native-feel experiences for every device and screen size.",
+    color: "bg-[#171717]/10 text-[#171717]",
+  },
+];
+
+const defaultFloatingImages: FloatingAsset[] = [
+  { type: "IMAGE", src: "/images/react.png", alt: "React", size: 48, duration: 12, posX: "32%", posY: "35%" },
+  { type: "IMAGE", src: "/images/js.png", alt: "JS", size: 46, duration: 14, posX: "62%", posY: "35%" },
+  { type: "IMAGE", src: "/images/python.png", alt: "Python", size: 50, duration: 13, posX: "32%", posY: "60%" },
+  { type: "IMAGE", src: "/images/java.png", alt: "Java", size: 44, duration: 15, posX: "62%", posY: "60%" },
+  { type: "IMAGE", src: "/images/mysql.png", alt: "MySQL", size: 46, duration: 11, posX: "48%", posY: "25%" },
+  { type: "IMAGE", src: "/images/postgresql.png", alt: "PostgreSQL", size: 42, duration: 16, posX: "48%", posY: "72%" },
+  { type: "IMAGE", src: "/images/database-storage.png", alt: "DB", size: 40, duration: 14, posX: "48%", posY: "45%" },
+  // New tech icons
+  { type: "IMAGE", src: "/images/android.png", alt: "Android", size: 44, duration: 13, posX: "25%", posY: "48%" },
+  { type: "IMAGE", src: "/images/apple.png", alt: "Apple", size: 42, duration: 15, posX: "75%", posY: "48%" },
+  { type: "IMAGE", src: "/images/c-.png", alt: "C#", size: 46, duration: 12, posX: "20%", posY: "30%" },
+  { type: "IMAGE", src: "/images/css-3.png", alt: "CSS3", size: 44, duration: 14, posX: "80%", posY: "30%" },
+  { type: "IMAGE", src: "/images/html-5.png", alt: "HTML5", size: 46, duration: 11, posX: "20%", posY: "65%" },
+  { type: "IMAGE", src: "/images/dev.png", alt: "Dev", size: 40, duration: 16, posX: "80%", posY: "65%" },
+  { type: "IMAGE", src: "/images/folder.png", alt: "Folder", size: 38, duration: 13, posX: "50%", posY: "80%" },
+];
+
+const defaultFloatingIcons: FloatingAsset[] = [
+  { type: "ICON", iconName: "Code2", color: "#60A5FA", size: 34, duration: 11, posX: "35%", posY: "40%" },
+  { type: "ICON", iconName: "Terminal", color: "#34D399", size: 38, duration: 13, posX: "65%", posY: "40%" },
+  { type: "ICON", iconName: "Cpu", color: "#F87171", size: 36, duration: 12, posX: "35%", posY: "60%" },
+  { type: "ICON", iconName: "Globe", color: "#FB923C", size: 32, duration: 14, posX: "65%", posY: "60%" },
+  { type: "ICON", iconName: "Layers", color: "#A78BFA", size: 40, duration: 15, posX: "50%", posY: "55%" },
+  { type: "ICON", iconName: "Zap", color: "#FACC15", size: 30, duration: 10, posX: "50%", posY: "35%" },
+];
 
 export default function Home() {
-  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
+  const y2 = useTransform(scrollY, [0, 500], [0, -150]);
+  const rotate = useTransform(scrollY, [0, 1000], [0, 45]);
+
+  const [heroData, setHeroData] = useState<{
+    content: HeroContent | null;
+    assets: FloatingAsset[];
+  } | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (heroRef.current) {
-        const scrolled = window.scrollY;
-        heroRef.current.style.transform = `translateY(${scrolled * 0.5}px)`;
+    const loadData = async () => {
+      try {
+        const data = await getHeroData();
+        setHeroData(data);
+      } catch (err) {
+        console.error("Failed to load hero data", err);
       }
     };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    loadData();
   }, []);
+
+  const dbAssets = heroData?.assets || [];
+  const displayImages = dbAssets.length > 0 
+    ? dbAssets.filter((a: FloatingAsset) => a.type === 'IMAGE') 
+    : defaultFloatingImages;
+  const displayIcons = dbAssets.length > 0 
+    ? dbAssets.filter((a: FloatingAsset) => a.type === 'ICON') 
+    : defaultFloatingIcons;
 
   return (
     <PublicLayout>
-      {/* Hero Section - Ultra Modern */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950">
-        {/* Animated Mesh Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]"></div>
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
-          
-          {/* Floating Orbs */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }}></div>
-          
-          {/* Grid Pattern */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]"></div>
+      <div className="relative min-h-screen bg-[#ECE6E6] overflow-hidden">
+        {/* Complex Background Waves */}
+        <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+          {[1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              variants={waveVariants}
+              animate="animate"
+              className="absolute w-[200%] h-[400px] bg-gradient-to-r from-transparent via-[#F3C36C]/30 to-transparent"
+              style={{
+                top: `${i * 25}%`,
+                left: '-50%',
+                rotate: i % 2 === 0 ? '15deg' : '-15deg',
+                filter: 'blur(80px)',
+              }}
+            />
+          ))}
         </div>
 
-        <div ref={heroRef} className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 text-center">
-          {/* Status Badge */}
-          <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl px-6 py-3 shadow-2xl">
-            <span className="relative flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50"></span>
-            </span>
-            <span className="text-sm font-medium text-white/90">Platform Live • Trusted Worldwide</span>
-          </div>
+        {/* Dynamic Asymmetric Shapes */}
+        <motion.div
+          style={{ y: y1, rotate }}
+          className="absolute -top-[10%] -left-[10%] w-[60%] h-[80%] bg-[#BCEACF]/30 shape-blob blur-3xl -z-10"
+        />
+        <motion.div
+          style={{ y: y2, rotate: -rotate }}
+          className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[70%] bg-[#F3C36C]/20 shape-blob blur-3xl -z-10"
+        />
 
-          {/* Main Headline */}
-          <h1 className="mb-8 text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight">
-            <span className="block text-white mb-4">Guaranteed Scope.</span>
-            <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent animate-gradient">
-              Simplified Development.
-            </span>
-          </h1>
+        {/* Hero Section */}
+        <section className="relative pt-0 pb-0 px-4 flex items-start overflow-visible">
+          <div className="max-w-[1920px] mx-auto w-full relative z-10 pt-12 md:pt-16">
+            <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-0 items-start">
+              
+              {/* Left Column: The Laptop with Floating Icons Inside */}
+              <div className="relative h-[350px] lg:h-[750px] flex items-start justify-center overflow-visible">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 0 }}
+                  animate={{ opacity: 1, scale: 1.05, y: -40 }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  className="relative w-full h-full flex items-start justify-center origin-top"
+                >
+                  <div className="relative w-full h-full transform translate-y-[-15%] lg:translate-y-[-10%] lg:translate-x-[5%]">
+                    {/* The Laptop Image */}
+                    <Image 
+                      src="/images/laptop1.png" 
+                      alt="Webbidev Laptop" 
+                      fill
+                      className="object-contain relative z-10 drop-shadow-[0_40px_100px_rgba(0,0,0,0.3)]" 
+                      priority
+                    />
+                    
+                    {/* Floating Icons INSIDE the laptop screen area */}
+                    <div className="absolute top-[34%] bottom-[42%] left-[16%] right-[16%] lg:top-[20%] lg:bottom-[32%] z-20 pointer-events-none overflow-hidden rounded-md">
+                      
+                      {/* Wave Spinner Effect */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                        {[1, 2, 3].map((i) => (
+                          <motion.div
+                            key={i}
+                            animate={{
+                              rotate: 360,
+                              scale: [1, 1.1, 1],
+                              opacity: [0.1, 0.3, 0.1],
+                            }}
+                            transition={{
+                              duration: 5 + i * 2,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
+                            className="absolute border-2 border-[#F3C36C]/20 rounded-full"
+                            style={{
+                              width: `${20 + i * 25}%`,
+                              height: `${20 + i * 25}%`,
+                            }}
+                          />
+                        ))}
+                        <motion.div
+                          animate={{
+                            scale: [1, 1.2, 1],
+                            opacity: [0.2, 0.5, 0.2],
+                          }}
+                          transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                          className="w-1/4 h-1/4 bg-gradient-to-tr from-[#F3C36C]/10 via-[#BCEACF]/10 to-[#AC9898]/10 blur-2xl rounded-full"
+                        />
+                      </div>
 
-          {/* Subheadline */}
-          <p className="mx-auto max-w-3xl mb-12 text-xl sm:text-2xl text-white/70 leading-relaxed font-light">
-            The enterprise-grade marketplace for
-            <span className="text-white font-medium"> frontend</span>,
-            <span className="text-white font-medium"> backend</span>, and
-            <span className="text-white font-medium"> UI/UX</span> specialists.
-            <br />
-            <span className="text-cyan-400 font-semibold">No pay-to-play. No complexity. Just results.</span>
-          </p>
+                      {/* Tech Logo Images */}
+                      {displayImages.map((item: FloatingAsset, idx: number) => {
+                        if (!item.src) return null;
+                        return (
+                          <motion.div
+                            key={`img-${idx}`}
+                            animate={{ 
+                              x: [0, 20 + (idx % 3) * 10, -15 - (idx % 2) * 10, 10 + (idx % 4) * 5, -20, 0], 
+                              y: [0, -15 - (idx % 3) * 8, 20 + (idx % 2) * 8, -10, 15 + (idx % 4) * 4, 0],
+                              rotate: [0, 8 + (idx % 2) * 4, -8 - (idx % 3) * 4, 4, -4, 0],
+                            }}
+                            transition={{ 
+                              duration: (item.duration || 12) * 0.4 + (idx % 3), 
+                              delay: -(idx * 2.5),
+                              repeat: Infinity, 
+                              ease: "easeInOut",
+                            }}
+                            className="absolute scale-50 lg:scale-100 origin-center"
+                            style={{
+                              left: item.posX,
+                              top: item.posY,
+                              width: item.size,
+                              height: item.size,
+                              transform: "translate(-50%, -50%)",
+                            }}
+                          >
+                            <Image 
+                              src={item.src}
+                              alt={item.alt || "Logo"}
+                              width={item.size}
+                              height={item.size}
+                              className="filter drop-shadow-xl"
+                              priority
+                            />
+                          </motion.div>
+                        );
+                      })}
+                      
+                      {/* Lucide Icons */}
+                      {displayIcons.map((item: FloatingAsset, idx: number) => {
+                        const iconKey = (item.iconName || "Code2") as keyof typeof LucideIcons;
+                        const Icon = (LucideIcons[iconKey] as LucideIcons.LucideIcon) || LucideIcons.Code2;
+                        return (
+                          <motion.div
+                            key={`icon-${idx}`}
+                            animate={{ 
+                              x: [0, 15 + (idx % 3) * 8, -12 - (idx % 2) * 8, 8 + (idx % 4) * 4, -15, 0], 
+                              y: [0, -12 - (idx % 3) * 6, 18 + (idx % 2) * 6, -8, 12 + (idx % 4) * 3, 0],
+                              rotate: [0, 10 + (idx % 2) * 5, -10 - (idx % 3) * 5, 5, -5, 0],
+                              scale: [0.95, 1.1 + (idx % 2) * 0.1, 0.9, 1.05, 0.95],
+                            }}
+                            transition={{ 
+                              duration: (item.duration || 11) * 0.4 + (idx % 4), 
+                              delay: -(idx * 1.7),
+                              repeat: Infinity, 
+                              ease: "easeInOut",
+                            }}
+                            className="absolute scale-50 lg:scale-100 origin-center"
+                            style={{
+                              left: item.posX,
+                              top: item.posY,
+                              transform: "translate(-50%, -50%)",
+                            }}
+                          >
+                            <Icon 
+                              size={item.size} 
+                              style={{ color: item.color ?? undefined, marginTop: '20px' }} 
+                              className="filter drop-shadow-xl"
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-            <Link href="/signup">
-              <Button 
-                size="lg"
-                className="group relative overflow-hidden bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-[length:200%_100%] hover:bg-[position:100%_0] text-white border-0 shadow-2xl shadow-blue-500/50 hover:shadow-cyan-500/50 transition-all duration-500 hover:scale-105 px-8 py-6 text-lg font-semibold"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  Start Building Today
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </Button>
-            </Link>
-            <Link href="/talent">
-              <Button 
-                size="lg"
-                className="group border-2 border-white/20 bg-white/5 backdrop-blur-xl text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-semibold"
-              >
-                <span className="flex items-center gap-2">
-                  Explore Talent
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-              </Button>
-            </Link>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { value: '10-13%', label: 'Platform Fee', color: 'from-blue-500 to-cyan-500' },
-              { value: '100%', label: 'Scope Guaranteed', color: 'from-emerald-500 to-green-500' },
-              { value: '$0', label: 'Pay-to-Play', color: 'from-purple-500 to-pink-500' }
-            ].map((stat, i) => (
-              <div key={i} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                <div className="relative">
-                  <div className={`text-5xl font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-2`}>
-                    {stat.value}
                   </div>
-                  <div className="text-sm font-medium text-white/60 uppercase tracking-wider">{stat.label}</div>
-                </div>
+                  
+                  {/* Glowing background behind laptop */}
+                  <div className="absolute -inset-20 bg-gradient-to-tr from-[#60A5FA]/20 via-[#34D399]/20 to-[#A78BFA]/20 blur-[100px] -z-10 animate-pulse" />
+                </motion.div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <svg className="w-6 h-6 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
-        </div>
-      </section>
-
-      {/* Features Section - Bento Grid */}
-      <section className="relative py-32 bg-white dark:bg-slate-950">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950"></div>
-        
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <Badge variant="primary" size="lg" className="mb-6 px-6 py-2 text-sm font-semibold">
-              Why Choose Webbidev
-            </Badge>
-            <h2 className="text-5xl sm:text-6xl font-black mb-6 bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 dark:from-white dark:via-blue-200 dark:to-white bg-clip-text text-transparent">
-              Built for Modern Teams
-            </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Enterprise-grade features designed for developers and clients who demand excellence.
-            </p>
-          </div>
-
-          {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: (
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                  </svg>
-                ),
-                title: 'Specialized Focus',
-                description: 'Curated marketplace exclusively for frontend, backend, and UI/UX professionals.',
-                gradient: 'from-blue-500 via-cyan-500 to-blue-600',
-                size: 'md:col-span-1'
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                ),
-                title: 'Scope Bar Protection',
-                description: 'Every project milestone is guaranteed. If deliverables don\'t match the agreed scope, you get a full refund.',
-                gradient: 'from-emerald-500 via-green-500 to-emerald-600',
-                size: 'md:col-span-1'
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ),
-                title: 'Transparent Pricing',
-                description: 'Flat 10-13% commission. No hidden fees, no tiers, no pay-to-play schemes.',
-                gradient: 'from-purple-500 via-pink-500 to-purple-600',
-                size: 'md:col-span-1'
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                ),
-                title: 'Instant Onboarding',
-                description: 'Portfolio link, 5 skills, and a bio. Start working in under 5 minutes.',
-                gradient: 'from-orange-500 via-red-500 to-orange-600',
-                size: 'md:col-span-1'
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                ),
-                title: 'Secure Escrow',
-                description: 'Funds held safely in escrow until milestone approval. Complete protection for all parties.',
-                gradient: 'from-indigo-500 via-blue-500 to-indigo-600',
-                size: 'md:col-span-1'
-              },
-              {
-                icon: (
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                  </svg>
-                ),
-                title: 'Fair Disputes',
-                description: 'Technical reviewers make objective decisions based on predefined milestone criteria.',
-                gradient: 'from-violet-500 via-purple-500 to-violet-600',
-                size: 'md:col-span-1'
-              }
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "group relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50",
-                  feature.size
-                )}
+              {/* Right Column: Text Section */}
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 1, delay: 0.5 }}
+                className="text-left pt-2 lg:pt-0 lg:pl-12 relative z-30 -mt-36 lg:mt-0"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
-                <div className="relative">
-                  <div className={`mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.gradient} text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white">{feature.title}</h3>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{feature.description}</p>
+                <Badge className="bg-[#747373] text-[#F1EFEF] border-none px-4 py-1.5 mb-4 rounded-full font-black tracking-widest uppercase text-[10px]">
+                  {heroData?.content?.badgeText || "Bring Your Idea to Life"}
+                </Badge>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-[#747373] leading-[1.1] mb-4">
+                  {heroData?.content?.headingPart1 || "Guaranteed Scope."} <br />
+                  {heroData?.content?.headingPart2 || "Simplified Development."}
+                </h1>
+                <p className="text-base md:text-lg text-[#171717]/60 max-w-xl mb-8 font-medium leading-relaxed">
+                  {heroData?.content?.description || "Connect with top developers, define your project scope, and track progress with confidence. Webbidev ensures clarity, quality, and secure payments every step of the way."}
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <Link href="/signup">
+                    <Button className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-700 hover:to-cyan-600 px-8 py-6 text-lg rounded-2xl shadow-xl flex items-center gap-4 group cursor-pointer">
+                      Get Started
+                      <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                    </Button>
+                  </Link>
+                  <Link href="/talent">
+                    <Button
+                      variant="outline"
+                      className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg rounded-2xl font-bold bg-white/80 backdrop-blur cursor-pointer"
+                    >
+                      Browse Talent
+                    </Button>
+                  </Link>
                 </div>
-              </div>
-            ))}
+              </motion.div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How It Works - Split View */}
-      <section className="relative py-32 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.1),transparent_50%)]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(168,85,247,0.1),transparent_50%)]"></div>
-        </div>
-
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <Badge variant="primary" size="lg" className="mb-6 px-6 py-2 text-sm font-semibold bg-white/10 text-white border-white/20">
-              How It Works
-            </Badge>
-            <h2 className="text-5xl sm:text-6xl font-black mb-6 text-white">
-              Simple. Transparent. Fair.
-            </h2>
-            <p className="text-xl text-white/70 max-w-2xl mx-auto">
-              Get started in minutes with our streamlined process.
-            </p>
+        {/* Platform Features Grid */}
+        <section className="mt-8 lg:mt-12 pb-24 px-4 relative z-40">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {features.map((feature, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <Card className="glass border-none h-full shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                    <CardContent className="pt-8 p-6">
+                      <div
+                        className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center mb-6`}
+                      >
+                        {feature.icon}
+                      </div>
+                      <h3 className="text-2xl font-bold mb-4 text-[#171717]">
+                        {feature.title}
+                      </h3>
+                      <p className="text-[#171717]/60 leading-relaxed font-medium">
+                        {feature.desc}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* For Clients */}
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-10 hover:bg-white/10 transition-all duration-500">
-                <div className="mb-8">
-                  <Badge variant="primary" size="lg" className="mb-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0">
-                    For Clients
+        {/* Developer Onboarding - unusual shape */}
+        <section className="pt-8 pb-24 px-4">
+          <div className="max-w-7xl mx-auto relative">
+            <div className="bg-[#454141] rounded-[4rem] p-12 lg:p-24 overflow-hidden relative shadow-3xl">
+              {/* Background gradient shapes */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-[#F3C36C]/20 blur-[100px] -mr-48 -mt-48" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#BCEACF]/10 blur-[100px] -ml-48 -mb-48" />
+
+              <div className="relative z-10 lg:flex items-center gap-16">
+                <div className="lg:w-1/2">
+                  <Badge className="bg-[#F3C36C] text-[#171717] mb-6">
+                    Developers
                   </Badge>
-                  <h3 className="text-3xl font-bold text-white mb-2">Post & Hire</h3>
-                  <p className="text-white/60">Find the perfect developer for your project</p>
-                </div>
-
-                <div className="space-y-6 mb-10">
-                  {[
-                    { 
-                      step: '01', 
-                      title: 'Define Your Project', 
-                      desc: 'Create 3-5 clear milestones with measurable outcomes',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                    },
-                    { 
-                      step: '02', 
-                      title: 'Review Proposals', 
-                      desc: 'Browse specialized developers with verified portfolios',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    },
-                    { 
-                      step: '03', 
-                      title: 'Approve & Release', 
-                      desc: 'Review work and release payments per milestone',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    }
-                  ].map((item, i) => (
-                    <div key={i} className="flex gap-4 group/item">
-                      <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-lg group-hover/item:scale-110 transition-transform duration-300">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-white mb-1">{item.title}</h4>
-                        <p className="text-sm text-white/60">{item.desc}</p>
-                      </div>
+                  <h2 className="text-4xl md:text-6xl font-black text-white mb-8 leading-tight">
+                    Onboard for free. <br />
+                    Get your devBucket.
+                  </h2>
+                  <p className="text-white/60 text-xl mb-12 font-medium">
+                    Set your pricing, generate invoices, and manage your dev
+                    lifecycle with precision. We handle the complexity, you
+                    handle the code.
+                  </p>
+                  <div className="grid grid-cols-2 gap-8 mb-12">
+                    <div>
+                      <h4 className="text-[#F3C36C] text-3xl font-black mb-2">
+                        90%
+                      </h4>
+                      <p className="text-white/40 font-medium">
+                        Earnings kept by you
+                      </p>
                     </div>
-                  ))}
-                </div>
-
-                <Link href="/signup">
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 shadow-xl py-6 text-lg font-semibold group/btn">
-                    Start as Client
-                    <svg className="ml-2 w-5 h-5 group-hover/btn:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* For Developers */}
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-10 hover:bg-white/10 transition-all duration-500">
-                <div className="mb-8">
-                  <Badge variant="primary" size="lg" className="mb-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0">
-                    For Developers
-                  </Badge>
-                  <h3 className="text-3xl font-bold text-white mb-2">Build & Earn</h3>
-                  <p className="text-white/60">Work on projects that match your expertise</p>
-                </div>
-
-                <div className="space-y-6 mb-10">
-                  {[
-                    { 
-                      step: '01', 
-                      title: 'Create Profile', 
-                      desc: 'Portfolio, 5 skills, and bio. Takes 5 minutes.',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    },
-                    { 
-                      step: '02', 
-                      title: 'Browse & Propose', 
-                      desc: 'Find projects matching your skills and submit proposals',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    },
-                    { 
-                      step: '03', 
-                      title: 'Deliver & Get Paid', 
-                      desc: 'Complete milestones and receive 87-90% of earnings',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    }
-                  ].map((item, i) => (
-                    <div key={i} className="flex gap-4 group/item">
-                      <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-white shadow-lg group-hover/item:scale-110 transition-transform duration-300">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-white mb-1">{item.title}</h4>
-                        <p className="text-sm text-white/60">{item.desc}</p>
-                      </div>
+                    <div>
+                      <h4 className="text-[#BCEACF] text-3xl font-black mb-2">
+                        $0
+                      </h4>
+                      <p className="text-white/40 font-medium">
+                        Platform setup fee
+                      </p>
                     </div>
-                  ))}
-                </div>
-
-                <Link href="/signup">
-                  <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white border-0 shadow-xl py-6 text-lg font-semibold group/btn">
-                    Start as Developer
-                    <svg className="ml-2 w-5 h-5 group-hover/btn:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Scope Bar Showcase */}
-      <section className="relative py-32 bg-white dark:bg-slate-950">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <Badge variant="primary" size="lg" className="mb-6 px-6 py-2 text-sm font-semibold">
-              The Scope Bar
-            </Badge>
-            <h2 className="text-5xl sm:text-6xl font-black mb-6 bg-gradient-to-r from-slate-900 via-emerald-900 to-slate-900 dark:from-white dark:via-emerald-200 dark:to-white bg-clip-text text-transparent">
-              Your Protection, Guaranteed
-            </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              Every project is protected by our Scope Bar system. Clear milestones, objective criteria, and full refunds if deliverables don't match.
-            </p>
-          </div>
-
-          <div className="relative max-w-5xl mx-auto">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-3xl blur-3xl"></div>
-            <div className="relative rounded-3xl border-2 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 p-12 shadow-2xl">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                  {
-                    icon: (
-                      <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                      </svg>
-                    ),
-                    title: 'Defined Milestones',
-                    desc: '3-5 clear milestones with objective "Definition of Done" criteria for each.'
-                  },
-                  {
-                    icon: (
-                      <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    ),
-                    title: 'Escrow Protection',
-                    desc: 'Funds held securely until milestone approval. Zero risk for both parties.'
-                  },
-                  {
-                    icon: (
-                      <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                      </svg>
-                    ),
-                    title: 'Fair Resolution',
-                    desc: 'Technical reviewers make objective decisions based on agreed criteria.'
-                  }
-                ].map((item, i) => (
-                  <div key={i} className="text-center group">
-                    <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 text-white shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                      {item.icon}
-                    </div>
-                    <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">{item.title}</h3>
-                    <p className="text-slate-600 dark:text-slate-400">{item.desc}</p>
                   </div>
-                ))}
+                  <Link href="/signup">
+                    <Button className="bg-[#F3C36C] text-[#171717] hover:bg-[#e0b460] px-8 py-6 text-lg rounded-xl font-bold">
+                      Claim Your devBucket
+                    </Button>
+                  </Link>
+                </div>
+                <div className="lg:w-1/2 mt-16 lg:mt-0">
+                  <div className="glass-dark rounded-3xl p-8 border-white/10">
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="w-12 h-12 bg-[#F3C36C] rounded-full" />
+                      <div>
+                        <div className="h-4 w-32 bg-white/20 rounded-full mb-2" />
+                        <div className="h-3 w-24 bg-white/10 rounded-full" />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="h-12 w-full bg-white/5 rounded-xl border border-white/5 flex items-center px-4">
+                        <MessageSquare className="w-5 h-5 text-white/40 mr-3" />
+                        <div className="h-3 w-1/2 bg-white/10 rounded-full" />
+                      </div>
+                      <div className="h-12 w-full bg-white/5 rounded-xl border border-white/5" />
+                      <div className="h-32 w-full bg-white/5 rounded-xl border border-white/5" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Final CTA */}
-      <section className="relative py-32 bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.15),transparent_70%)]"></div>
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
-        </div>
+        {/* Client Section */}
+        <section className="py-24 px-4 bg-white/50 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-black text-[#171717] mb-6">
+                Ready to Scale?
+              </h2>
+              <p className="text-lg text-[#171717]/60 max-w-2xl mx-auto font-medium">
+                Clients get a free userBucket to track project progress, manage
+                invoices, and communicate directly with developers.
+              </p>
+            </div>
 
-        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-5xl sm:text-6xl font-black mb-6 text-white">
-            Ready to Build Something Great?
-          </h2>
-          <p className="text-2xl text-white/70 mb-12 leading-relaxed">
-            Join thousands of developers and clients building the future.
-            <br />
-            <span className="text-cyan-400">No credit card required. Start in minutes.</span>
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/signup">
-              <Button 
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 bg-[length:200%_100%] hover:bg-[position:100%_0] text-white border-0 shadow-2xl shadow-blue-500/50 hover:shadow-cyan-500/50 transition-all duration-500 hover:scale-105 px-10 py-7 text-xl font-bold group"
-              >
-                Create Free Account
-                <svg className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Button>
-            </Link>
-            <Link href="/talent">
-              <Button 
-                size="lg"
-                className="border-2 border-white/20 bg-white/5 backdrop-blur-xl text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 hover:scale-105 px-10 py-7 text-xl font-bold group"
-              >
-                Browse Developers
-                <svg className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </Button>
-            </Link>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  title: "Accept Pricing",
+                  desc: "Review and accept developer quotes instantly within your bucket.",
+                  icon: <Zap />,
+                },
+                {
+                  title: "Project Tracking",
+                  desc: "Watch your project evolve step-by-step with real-time updates.",
+                  icon: <ArrowRight />,
+                },
+                {
+                  title: "Secure Payouts",
+                  desc: "Funds stay in Webbidev until project completion is confirmed.",
+                  icon: <Cpu />,
+                },
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="w-12 h-12 bg-[#BCEACF] text-[#171717] rounded-xl flex items-center justify-center mb-6">
+                    {item.icon}
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4 text-[#171717]">
+                    {item.title}
+                  </h3>
+                  <p className="text-[#171717]/60 font-medium leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+
+      </div>
     </PublicLayout>
   );
 }

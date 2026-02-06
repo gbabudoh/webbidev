@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, Typography, Badge, Button } from '@/components/ui';
-import { formatCurrency, formatDate, formatRelativeTime } from '@/lib/utils';
+import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
 
 interface Transaction {
@@ -54,8 +53,9 @@ export default function ClientBillingPage() {
 
       const data = await response.json();
       setTransactions(data.transactions || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load transactions');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load transactions';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,14 +63,14 @@ export default function ClientBillingPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[600px]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <Typography variant="p" size="lg" color="muted">Loading billing information...</Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -113,7 +113,7 @@ export default function ClientBillingPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -343,6 +343,6 @@ export default function ClientBillingPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

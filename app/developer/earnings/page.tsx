@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import PayoutHistoryTable from '@/components/features/payment/PayoutHistoryTable';
 import StripeConnectOnboarding from '@/components/features/payment/StripeConnectOnboarding';
-import { Card, CardContent, CardHeader, CardTitle, Typography, Badge } from '@/components/ui';
+import { Typography } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
 import { DollarSign, Clock, Briefcase, Receipt, TrendingUp, AlertCircle } from 'lucide-react';
 
@@ -70,8 +69,9 @@ export default function DeveloperEarningsPage() {
         const profileData = await profileResponse.json();
         setProfile(profileData.profile);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load earnings data');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load earnings data';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export default function DeveloperEarningsPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center animate-pulse">
@@ -90,7 +90,7 @@ export default function DeveloperEarningsPage() {
             </Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -105,7 +105,7 @@ export default function DeveloperEarningsPage() {
   const totalTransactions = transactions.length;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header Section */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/30 dark:via-emerald-950/30 dark:to-teal-950/30 border border-green-100 dark:border-green-900/50 p-8">
@@ -256,7 +256,7 @@ export default function DeveloperEarningsPage() {
         {/* Payout History */}
         <PayoutHistoryTable transactions={transactions} />
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

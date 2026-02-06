@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import CookieBanner from "@/components/CookieBanner";
+import MobileNav from "@/components/navigation/MobileNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Webbidev - Guaranteed Scope. Simplified Development.",
   description: "A specialized marketplace for frontend, backend, and UI/UX developers and designers.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -28,8 +33,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieBanner />
+          <MobileNav />
+        </Providers>
       </body>
     </html>
   );
 }
+

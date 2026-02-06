@@ -56,12 +56,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'An error occurred during user creation',
-        message: error.message || 'Unknown error',
+        message: errorMessage,
       },
       { status: 500 }
     );

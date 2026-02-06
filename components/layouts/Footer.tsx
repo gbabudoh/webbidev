@@ -1,13 +1,23 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Typography } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface FooterProps {
   className?: string;
 }
 
 export default function Footer({ className }: FooterProps) {
+  const pathname = usePathname();
   const currentYear = new Date().getFullYear();
+
+  const isDashboard = pathname.includes('/dashboard') || 
+                      pathname.includes('/client/') || 
+                      pathname.includes('/developer/') || 
+                      pathname.includes('/admin/');
 
   const footerLinks = {
     platform: [
@@ -31,6 +41,7 @@ export default function Footer({ className }: FooterProps) {
     <footer
       className={cn(
         'border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950',
+        isDashboard && "hidden md:block",
         className
       )}
     >
@@ -38,9 +49,9 @@ export default function Footer({ className }: FooterProps) {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-1 md:col-span-1">
-            <Typography variant="h2" size="lg" weight="bold" className="mb-4">
-              Webbidev
-            </Typography>
+            <Link href="/" className="mb-4 block">
+              <Image src="/webbidev.png" alt="Webbidev Logo" width={120} height={32} className="h-8 w-auto" />
+            </Link>
             <Typography variant="p" size="sm" color="muted" className="mb-4">
               Guaranteed Scope. Simplified Development.
             </Typography>

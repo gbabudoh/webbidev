@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,10 +17,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('registered') === 'true') {
-      setSuccess('Account created successfully! Please sign in.');
+    const registered = searchParams.get('registered');
+    if (registered === 'true' && !success) {
+      // Use setTimeout to avoid cascading render warning
+      const timer = setTimeout(() => {
+        setSuccess('Account created successfully! Please sign in.');
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [searchParams]);
+  }, [searchParams, success]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +49,7 @@ export default function LoginPage() {
         router.push('/dashboard');
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
       setIsLoading(false);
     }
@@ -65,14 +71,9 @@ export default function LoginPage() {
         <div className="relative bg-white/80 dark:bg-white/10 backdrop-blur-xl border border-slate-200 dark:border-white/20 rounded-3xl shadow-2xl p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <Link href="/" className="inline-block group">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <span className="text-3xl font-black text-slate-900 dark:text-white">Webbidev</span>
+            <Link href="/" className="inline-block group cursor-pointer">
+              <div className="flex items-center justify-center mb-3">
+                <Image src="/webbidev.png" alt="Webbidev Logo" width={180} height={48} className="h-12 w-auto" priority />
               </div>
             </Link>
             <p className="text-slate-600 dark:text-blue-200/80 text-sm">Guaranteed Scope. Simplified Development.</p>
@@ -158,7 +159,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-white/40 hover:text-slate-600 dark:hover:text-white/70 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 dark:text-white/40 hover:text-slate-600 dark:hover:text-white/70 transition-colors cursor-pointer"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -187,7 +188,7 @@ export default function LoginPage() {
               </label>
               <Link
                 href="/forgot-password"
-                className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
               >
                 Forgot password?
               </Link>
@@ -197,7 +198,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoading ? (
                 <>
@@ -221,10 +222,10 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="mt-8 text-center">
             <p className="text-slate-600 dark:text-white/60 text-sm">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link
                 href="/signup"
-                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
               >
                 Sign up for free
               </Link>
@@ -233,9 +234,9 @@ export default function LoginPage() {
 
           {/* Footer Links */}
           <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/10 flex items-center justify-center gap-6 text-sm text-slate-500 dark:text-white/40">
-            <Link href="/" className="hover:text-slate-700 dark:hover:text-white/70 transition-colors">Home</Link>
-            <Link href="/talent" className="hover:text-slate-700 dark:hover:text-white/70 transition-colors">Browse Talent</Link>
-            <Link href="/about" className="hover:text-slate-700 dark:hover:text-white/70 transition-colors">About</Link>
+            <Link href="/" className="hover:text-slate-700 dark:hover:text-white/70 transition-colors cursor-pointer">Home</Link>
+            <Link href="/talent" className="hover:text-slate-700 dark:hover:text-white/70 transition-colors cursor-pointer">Browse Talent</Link>
+            <Link href="/about" className="hover:text-slate-700 dark:hover:text-white/70 transition-colors cursor-pointer">About</Link>
           </div>
         </div>
       </div>

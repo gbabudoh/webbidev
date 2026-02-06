@@ -3,10 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Input, Select, Button, Typography, Badge } from '@/components/ui';
+import { Input, Select, Button, Typography, Badge } from '@/components/ui';
 import { formatCurrency, formatDate, formatRelativeTime } from '@/lib/utils';
-import { cn } from '@/lib/utils';
 import { 
   Search, 
   Briefcase, 
@@ -127,8 +125,9 @@ function JobsPageContent() {
       });
 
       setProjects(fetchedProjects);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load projects');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load projects';
+      setError(errorMessage);
       setProjects([]);
     } finally {
       setLoading(false);
@@ -148,6 +147,7 @@ function JobsPageContent() {
   // Fetch on mount and filter changes
   useEffect(() => {
     fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillType]);
 
   const handleSubmitProposal = (projectId: string) => {
@@ -156,7 +156,7 @@ function JobsPageContent() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
@@ -167,12 +167,12 @@ function JobsPageContent() {
             </Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-pink-950/30 border border-blue-100 dark:border-blue-900/50 p-8">
@@ -404,18 +404,18 @@ function JobsPageContent() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 
 export default function DeveloperJobsPage() {
   return (
     <Suspense fallback={
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <Typography variant="p" size="lg">Loading...</Typography>
         </div>
-      </DashboardLayout>
+      </>
     }>
       <JobsPageContent />
     </Suspense>

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLogout } from '@/lib/auth-client';
-import { Button, Typography } from '@/components/ui';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
+import { LogOut } from 'lucide-react';
 
 interface HeaderProps {
   className?: string;
@@ -16,196 +18,132 @@ export default function Header({ className }: HeaderProps) {
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading } = useAuth();
   const logout = useLogout();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Home', href: '/', public: true },
-    { name: 'Browse Talent', href: '/talent', public: true },
-    { name: 'How It Works', href: '/how-it-works', public: true },
-    { name: 'Pricing', href: '/pricing', public: true },
+    { name: 'Home', href: '/' },
+    { name: 'Browse Talent', href: '/talent' },
+    { name: 'How It Works', href: '/how-it-works' },
+    { name: 'Pricing', href: '/pricing' },
   ];
 
   const getDashboardLink = () => {
     if (!user) return '/login';
     if (user.role === 'ADMIN') return '/admin/dashboard';
-    if (user.role === 'CLIENT') return '/client/dashboard';
+    if (user.role === 'CLIENT') return '/dashboard/user-bucket';
     if (user.role === 'DEVELOPER') return '/developer/dashboard';
     return '/dashboard';
-  };
-
-  const getDashboardName = () => {
-    if (!user) return 'Dashboard';
-    if (user.role === 'ADMIN') return 'Admin Dashboard';
-    if (user.role === 'CLIENT') return 'Client Dashboard';
-    if (user.role === 'DEVELOPER') return 'Developer Dashboard';
-    return 'Dashboard';
   };
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:border-zinc-800 dark:bg-zinc-950/95 dark:supports-[backdrop-filter]:bg-zinc-950/60',
+        'sticky top-0 z-50 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl',
         className
       )}
     >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16" aria-label="Global">
-        <div className="flex items-center gap-x-12">
-          <Link href="/" className="flex items-center gap-x-2">
-            <Typography variant="h1" size="xl" weight="bold" className="text-foreground">
-              Webbidev
-            </Typography>
-          </Link>
-          <div className="hidden lg:flex lg:gap-x-6">
-            {navigation.map((item) => (
+      {/* Mobile Header */}
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16 md:h-20">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-x-2 group cursor-pointer flex-shrink-0">
+          <Image 
+            src="/webbidev.png" 
+            alt="Webbidev Logo" 
+            width={150} 
+            height={40} 
+            className="h-8 md:h-9 w-auto transition-transform duration-300 group-hover:scale-105" 
+            priority 
+          />
+        </Link>
+
+        {/* Desktop Navigation - Hidden on mobile */}
+        <div className="hidden lg:flex lg:items-center lg:gap-x-1 flex-1 mx-8">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
               <Link
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'text-sm font-semibold leading-6 transition-colors hover:text-foreground',
-                  pathname === item.href
-                    ? 'text-foreground'
-                    : 'text-zinc-600 dark:text-zinc-400'
+                  'relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer',
+                  isActive
+                    ? 'text-slate-900 bg-slate-100'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 )}
               >
                 {item.name}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl -z-10"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
               </Link>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-x-4">
-          {isLoading ? (
-            <div className="h-8 w-8 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
-          ) : isAuthenticated ? (
-            <div className="relative">
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-x-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <div className="h-8 w-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-semibold">
-                  {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
-                </div>
-                <span className="hidden sm:block">{user?.name || user?.email}</span>
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {isUserMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsUserMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 z-50 mt-2 w-48 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
-                    <div className="p-2">
-                      <Link
-                        href={getDashboardLink()}
-                        className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        {getDashboardName()}
-                      </Link>
-                      {user?.role === 'DEVELOPER' && (
-                        <Link
-                          href="/developer/profile"
-                          className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Profile
-                        </Link>
-                      )}
-                      {user?.role === 'CLIENT' && (
-                        <Link
-                          href="/client/post"
-                          className="block rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                          onClick={() => setIsUserMenuOpen(false)}
-                        >
-                          Post Project
-                        </Link>
-                      )}
-                      <button
-                        onClick={() => {
-                          logout();
-                          setIsUserMenuOpen(false);
-                        }}
-                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  </div>
-                </>
+            );
+          })}
+          
+          {/* Dashboard Link - Desktop only */}
+          {isAuthenticated && (
+            <Link
+              href={getDashboardLink()}
+              className={cn(
+                'relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer',
+                pathname.includes('/dashboard') || pathname.includes('/admin')
+                  ? 'text-slate-900 bg-slate-100'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               )}
+            >
+              Dashboard
+              {(pathname.includes('/dashboard') || pathname.includes('/admin')) && (
+                <motion.div
+                  layoutId="activeNav"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl -z-10"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </Link>
+          )}
+        </div>
+
+        {/* Desktop Auth Buttons - Hidden on mobile */}
+        <div className="hidden md:flex items-center gap-x-2">
+          {isLoading ? (
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-slate-100" />
+          ) : isAuthenticated ? (
+            <div className="flex items-center gap-x-3">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center text-sm font-bold shadow-lg shadow-blue-500/25">
+                {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <span className="hidden sm:block max-w-[120px] truncate text-sm font-medium text-slate-700">{user?.name || user?.email}</span>
+              <button
+                onClick={() => {
+                  logout();
+                }}
+                className="text-slate-600 hover:text-red-600 transition-colors"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
           ) : (
-            <div className="flex items-center gap-x-2">
+            <>
               <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Sign in
+                <Button 
+                  variant="ghost" 
+                  className="text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                >
+                  Log in
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button variant="primary" size="sm">
-                  Sign up
+                <Button className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-700 hover:to-cyan-600 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 group cursor-pointer">
+                  Get Started
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
                 </Button>
               </Link>
-            </div>
+            </>
           )}
-
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="lg:hidden rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <span className="sr-only">Open main menu</span>
-            {isMenuOpen ? (
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
         </div>
       </nav>
-
-      {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="lg:hidden border-t border-zinc-200 dark:border-zinc-800">
-          <div className="space-y-1 px-4 pb-3 pt-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'block rounded-lg px-3 py-2 text-base font-medium',
-                  pathname === item.href
-                    ? 'bg-zinc-100 text-foreground dark:bg-zinc-800'
-                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
-                )}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
-

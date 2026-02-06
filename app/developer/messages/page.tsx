@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import ConversationList from '@/components/features/messaging/ConversationList';
 import MessageView from '@/components/features/messaging/MessageView';
 import DirectMessageComposer from '@/components/features/messaging/DirectMessageComposer';
@@ -51,6 +50,49 @@ interface Message {
   createdAt: string;
 }
 
+interface DirectConversation {
+  id: string;
+  userId: string;
+  otherParty: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    role: string;
+  };
+  lastMessage: {
+    id: string;
+    subject: string;
+    content: string;
+    createdAt: string;
+  } | null;
+  unreadCount: number;
+}
+
+interface DirectMessage {
+  id: string;
+  subject: string;
+  content: string;
+  senderId: string;
+  recipientId: string;
+  createdAt: string;
+  read: boolean;
+  sender: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  };
+}
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: string;
+}
+
 export default function DeveloperMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -61,10 +103,10 @@ export default function DeveloperMessagesPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'project' | 'direct'>('project');
-  const [directConversations, setDirectConversations] = useState<any[]>([]);
-  const [directMessages, setDirectMessages] = useState<any[]>([]);
+  const [directConversations, setDirectConversations] = useState<DirectConversation[]>([]);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
   const [selectedDirectConversation, setSelectedDirectConversation] = useState<string | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showComposer, setShowComposer] = useState(false);
 
   useEffect(() => {
@@ -74,6 +116,7 @@ export default function DeveloperMessagesPage() {
       fetchDirectConversations();
       fetchUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
   useEffect(() => {
@@ -105,8 +148,9 @@ export default function DeveloperMessagesPage() {
       if (data.conversations && data.conversations.length > 0 && !selectedConversationId) {
         setSelectedConversationId(data.conversations[0].id);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load conversations');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -126,8 +170,9 @@ export default function DeveloperMessagesPage() {
       setMessages(data.messages || []);
       setProjectTitle(data.project?.title || '');
       setOtherParty(data.otherParty || null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load messages');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
+      setError(errorMessage);
     } finally {
       setMessagesLoading(false);
     }
@@ -159,8 +204,9 @@ export default function DeveloperMessagesPage() {
       
       // Refresh conversations to update last message
       fetchConversations();
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMessage);
       throw err;
     }
   };
@@ -185,8 +231,9 @@ export default function DeveloperMessagesPage() {
       if (data.conversations && data.conversations.length > 0 && !selectedDirectConversation) {
         setSelectedDirectConversation(data.conversations[0].userId);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load direct conversations');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load direct conversations';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -204,8 +251,9 @@ export default function DeveloperMessagesPage() {
 
       const data = await response.json();
       setDirectMessages(data.messages || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load direct messages');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load direct messages';
+      setError(errorMessage);
     } finally {
       setMessagesLoading(false);
     }
@@ -256,15 +304,16 @@ export default function DeveloperMessagesPage() {
       
       // Refresh conversations to update last message
       fetchDirectConversations();
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMessage);
       throw err;
     }
   };
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
@@ -275,7 +324,7 @@ export default function DeveloperMessagesPage() {
             </Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -284,7 +333,7 @@ export default function DeveloperMessagesPage() {
     : directConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header Section */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-pink-950/30 border border-blue-100 dark:border-blue-900/50 p-8">
@@ -564,6 +613,6 @@ export default function DeveloperMessagesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

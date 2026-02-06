@@ -1,13 +1,53 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { useState, useEffect, useCallback } from 'react';
 import ConversationList from '@/components/features/messaging/ConversationList';
 import MessageView from '@/components/features/messaging/MessageView';
 import DirectMessageComposer from '@/components/features/messaging/DirectMessageComposer';
 import DirectMessageView from '@/components/features/messaging/DirectMessageView';
 import { Typography, Button, Badge, Card, CardContent } from '@/components/ui';
 import { cn } from '@/lib/utils';
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string;
+  image?: string | null;
+  role: string;
+}
+
+interface DirectConversation {
+  id: string;
+  userId: string;
+  otherParty: {
+    id: string;
+    name: string | null;
+    email: string;
+    image?: string | null;
+    role: string;
+  };
+  lastMessage: {
+    id: string;
+    content: string;
+    subject?: string;
+    createdAt: string;
+  } | null;
+  unreadCount: number;
+}
+
+interface DirectMessage {
+  id: string;
+  content: string;
+  subject?: string;
+  senderId: string;
+  sender: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  };
+  createdAt: string;
+}
 
 interface Conversation {
   id: string;
@@ -60,34 +100,15 @@ export default function ClientMessagesPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'project' | 'direct'>('project');
-  const [directConversations, setDirectConversations] = useState<any[]>([]);
-  const [directMessages, setDirectMessages] = useState<any[]>([]);
+  const [directConversations, setDirectConversations] = useState<DirectConversation[]>([]);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
   const [selectedDirectConversation, setSelectedDirectConversation] = useState<string | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showComposer, setShowComposer] = useState(false);
 
-  useEffect(() => {
-    if (viewMode === 'project') {
-      fetchConversations();
-    } else {
-      fetchDirectConversations();
-      fetchUsers();
-    }
-  }, [viewMode]);
 
-  useEffect(() => {
-    if (selectedConversationId && viewMode === 'project') {
-      fetchMessages(selectedConversationId);
-    }
-  }, [selectedConversationId, viewMode]);
 
-  useEffect(() => {
-    if (selectedDirectConversation && viewMode === 'direct') {
-      fetchDirectMessages(selectedDirectConversation);
-    }
-  }, [selectedDirectConversation, viewMode]);
-
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -103,14 +124,15 @@ export default function ClientMessagesPage() {
       if (data.conversations && data.conversations.length > 0 && !selectedConversationId) {
         setSelectedConversationId(data.conversations[0].id);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load conversations');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedConversationId]);
 
-  const fetchMessages = async (projectId: string) => {
+  const fetchMessages = useCallback(async (projectId: string) => {
     try {
       setMessagesLoading(true);
       setError(null);
@@ -124,12 +146,13 @@ export default function ClientMessagesPage() {
       setMessages(data.messages || []);
       setProjectTitle(data.project?.title || '');
       setOtherParty(data.otherParty || null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load messages');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
+      setError(errorMessage);
     } finally {
       setMessagesLoading(false);
     }
-  };
+  }, []);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversationId) return;
@@ -153,8 +176,9 @@ export default function ClientMessagesPage() {
       const data = await response.json();
       setMessages((prev) => [...prev, data.message]);
       fetchConversations();
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMessage);
       throw err;
     }
   };
@@ -163,7 +187,7 @@ export default function ClientMessagesPage() {
     setSelectedConversationId(conversationId);
   };
 
-  const fetchDirectConversations = async () => {
+  const fetchDirectConversations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -179,14 +203,15 @@ export default function ClientMessagesPage() {
       if (data.conversations && data.conversations.length > 0 && !selectedDirectConversation) {
         setSelectedDirectConversation(data.conversations[0].userId);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load direct conversations');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load direct conversations';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDirectConversation]);
 
-  const fetchDirectMessages = async (userId: string) => {
+  const fetchDirectMessages = useCallback(async (userId: string) => {
     try {
       setMessagesLoading(true);
       setError(null);
@@ -198,14 +223,15 @@ export default function ClientMessagesPage() {
 
       const data = await response.json();
       setDirectMessages(data.messages || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load direct messages');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load direct messages';
+      setError(errorMessage);
     } finally {
       setMessagesLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch('/api/users/search');
       if (response.ok) {
@@ -215,7 +241,7 @@ export default function ClientMessagesPage() {
     } catch (err) {
       console.error('Failed to fetch users:', err);
     }
-  };
+  }, []);
 
   const handleSendDirectMessage = async (recipientId: string, subject: string, content: string) => {
     try {
@@ -239,27 +265,51 @@ export default function ClientMessagesPage() {
       const data = await response.json();
       setDirectMessages((prev) => [...prev, data.message]);
       fetchDirectConversations();
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMessage);
       throw err;
     }
   };
 
+
+
+  useEffect(() => {
+    if (viewMode === 'project') {
+      fetchConversations();
+    } else {
+      fetchDirectConversations();
+      fetchUsers();
+    }
+  }, [viewMode, fetchConversations, fetchDirectConversations, fetchUsers]);
+
+  useEffect(() => {
+    if (selectedConversationId && viewMode === 'project') {
+      fetchMessages(selectedConversationId);
+    }
+  }, [selectedConversationId, viewMode, fetchMessages]);
+
+  useEffect(() => {
+    if (selectedDirectConversation && viewMode === 'direct') {
+      fetchDirectMessages(selectedDirectConversation);
+    }
+  }, [selectedDirectConversation, viewMode, fetchDirectMessages]);
+
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center min-h-[600px]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <Typography variant="p" size="lg" color="muted">Loading messages...</Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -508,6 +558,6 @@ export default function ClientMessagesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

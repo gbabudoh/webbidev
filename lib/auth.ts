@@ -64,11 +64,18 @@ export async function authenticateUser(
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
     return { user: userWithoutPassword };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Authentication error:', error);
     
     // Check if it's a database connection error
-    if (error?.code === 'P1001' || error?.message?.includes("Can't reach database server")) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P1001') {
+      return { 
+        user: null, 
+        error: 'Database connection failed. Please check if the database server is running and accessible.' 
+      };
+    }
+    
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes("Can't reach database server")) {
       return { 
         user: null, 
         error: 'Database connection failed. Please check if the database server is running and accessible.' 

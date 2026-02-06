@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 export interface TypographyProps extends React.HTMLAttributes<HTMLElement> {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'label';
   size?: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
-  weight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+  weight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'black';
   color?: 'default' | 'muted' | 'primary' | 'secondary' | 'error' | 'success';
   align?: 'left' | 'center' | 'right' | 'justify';
   children: React.ReactNode;
@@ -41,6 +41,7 @@ const Typography = React.forwardRef<HTMLElement, TypographyProps>(
       medium: 'font-medium',
       semibold: 'font-semibold',
       bold: 'font-bold',
+      black: 'font-black',
     };
 
     const colorClasses = {
@@ -85,7 +86,7 @@ const Typography = React.forwardRef<HTMLElement, TypographyProps>(
     const Component = variant;
 
     return (
-      <Component ref={ref as any} className={classes} {...props}>
+      <Component ref={ref as React.Ref<never>} className={classes} {...props}>
         {children}
       </Component>
     );

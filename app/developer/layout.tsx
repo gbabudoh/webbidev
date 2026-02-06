@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { requireDeveloper } from '@/lib/auth-server';
+import DashboardLayout from '@/components/layouts/DashboardLayout';
 
 export default async function DeveloperLayout({
   children,
@@ -9,6 +10,5 @@ export default async function DeveloperLayout({
   // Ensure user is a developer
   await requireDeveloper();
 
-  return <>{children}</>;
+  return <DashboardLayout showFooter={false}>{children}</DashboardLayout>;
 }
-

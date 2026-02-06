@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, Typography, Button, Input, Textarea, Select } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -17,8 +17,8 @@ type SkillType = 'Frontend' | 'Backend' | 'Fullstack' | 'UI/UX';
 
 export default function PostProjectPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const developerId = searchParams.get('developerId');
+
+
 
   const [formData, setFormData] = useState({
     title: '',
@@ -38,10 +38,11 @@ export default function PostProjectPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value as SkillType,
+    }));
     setError('');
   };
 
@@ -165,8 +166,9 @@ export default function PostProjectPage() {
       }
 
       router.push(`/client/projects/${data.project.id}`);
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred. Please try again.';
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -175,7 +177,7 @@ export default function PostProjectPage() {
   const isValidPercentage = Math.abs(totalPercentage - 100) < 0.01;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -340,7 +342,7 @@ export default function PostProjectPage() {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
                           {index + 1}
                         </div>
-                        <CardTitle size="md">Milestone {index + 1}</CardTitle>
+                        <CardTitle className="text-lg">Milestone {index + 1}</CardTitle>
                       </div>
                       {milestones.length > 3 && (
                         <Button
@@ -495,6 +497,6 @@ export default function PostProjectPage() {
           </div>
         </form>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

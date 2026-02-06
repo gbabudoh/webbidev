@@ -28,7 +28,7 @@ export default function DashboardLayout({
             className
           )}
         >
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 pt-8 pb-32 sm:px-6 lg:px-8 lg:pb-8">
             {children}
           </div>
         </main>

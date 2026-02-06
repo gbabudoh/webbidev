@@ -24,6 +24,8 @@ export default function Sidebar({ className }: SidebarProps) {
   // Client navigation
   const clientNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/client/dashboard' },
+    { name: 'userBucket', href: '/dashboard/user-bucket' },
+    { name: 'userBucket Board', href: '/dashboard/user-bucket/board' },
     { name: 'My Projects', href: '/client/projects' },
     { name: 'Post Project', href: '/client/post' },
     { name: 'Messages', href: '/client/messages' },
@@ -34,6 +36,8 @@ export default function Sidebar({ className }: SidebarProps) {
   // Developer navigation
   const developerNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/developer/dashboard' },
+    { name: 'devBucket', href: '/developer/dashboard/dev-bucket' },
+    { name: 'devBucket Board', href: '/developer/dashboard/dev-bucket/board' },
     { name: 'Job Feed', href: '/developer/jobs' },
     { name: 'Messages', href: '/developer/messages' },
     { name: 'My Profile', href: '/developer/profile' },
@@ -45,6 +49,7 @@ export default function Sidebar({ className }: SidebarProps) {
     { name: 'Dashboard', href: '/admin/dashboard' },
     { name: 'Users', href: '/admin/users' },
     { name: 'Projects', href: '/admin/projects' },
+    { name: 'Hero Content', href: '/admin/hero' },
     { name: 'Messages', href: '/admin/messages' },
     { name: 'Disputes', href: '/admin/disputes' },
     { name: 'Settings', href: '/admin/settings' },
@@ -85,7 +90,9 @@ export default function Sidebar({ className }: SidebarProps) {
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = item.href.includes('dashboard') || item.href.includes('bucket')
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.name}

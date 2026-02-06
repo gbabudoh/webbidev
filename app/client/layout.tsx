@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { requireClient } from '@/lib/auth-server';
+import DashboardLayout from '@/components/layouts/DashboardLayout';
 
 export default async function ClientLayout({
   children,
@@ -9,6 +10,5 @@ export default async function ClientLayout({
   // Ensure user is a client
   await requireClient();
 
-  return <>{children}</>;
+  return <DashboardLayout showFooter={false}>{children}</DashboardLayout>;
 }
-

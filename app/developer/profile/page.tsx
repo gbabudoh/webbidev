@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import DeveloperProfileForm from '@/components/features/profile/DeveloperProfileForm';
-import { Card, CardContent, CardHeader, CardTitle, Typography, Badge } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
-import { User, DollarSign, Briefcase, CheckCircle, Award, TrendingUp, AlertCircle } from 'lucide-react';
+import { User, DollarSign, Briefcase, CheckCircle, Award, TrendingUp, AlertCircle, MapPin, Globe } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
 
 interface DeveloperProfile {
   id: string;
@@ -29,7 +27,6 @@ interface DeveloperProfile {
 }
 
 export default function DeveloperProfilePage() {
-  const router = useRouter();
   const [profile, setProfile] = useState<DeveloperProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,8 +55,12 @@ export default function DeveloperProfilePage() {
 
       const data = await response.json();
       setProfile(data.profile);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load profile');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to load profile');
+      } else {
+        setError('Failed to load profile');
+      }
     } finally {
       setLoading(false);
     }
@@ -96,158 +97,232 @@ export default function DeveloperProfilePage() {
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to save profile');
+      } else {
+        setError('Failed to save profile');
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.1,
+        duration: 0.5
+      }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { type: "spring", stiffness: 100 }
+    }
+  };
+
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center animate-pulse">
-              <User className="w-8 h-8 text-white" />
+      <>
+        <div className="flex items-center justify-center min-h-[600px]">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <User className="w-8 h-8 text-blue-500/50" />
             </div>
-            <Typography variant="p" size="lg" color="muted">
-              Loading profile...
-            </Typography>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <>
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-8 max-w-7xl mx-auto pb-12"
+      >
         {/* Header Section */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 via-pink-50 to-red-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-red-950/30 border border-purple-100 dark:border-purple-900/50 p-8">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-red-400/20 to-pink-400/20 rounded-full blur-3xl" />
+        <motion.div variants={itemVariants} className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-white via-slate-50 to-blue-50/50 border border-white/60 p-8 md:p-12 shadow-xl">
+          {/* Animated Background Effects */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-400/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
           
-          <div className="relative flex items-start gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-              <User className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <Typography variant="h1" size="3xl" weight="bold" className="mb-2">
-                My Profile
-              </Typography>
-              <Typography variant="p" size="lg" color="muted">
-                Manage your developer profile and showcase your skills
-              </Typography>
+          <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8 z-10">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-br from-blue-400 to-purple-500 rounded-[2rem] blur opacity-30 group-hover:opacity-60 transition duration-500" />
+              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-[2rem] bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm">
+                {profile?.user?.name ? (
+                  <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-purple-600">
+                    {profile.user.name.charAt(0)}
+                  </span>
+                ) : (
+                  <User className="w-16 h-16 text-slate-300" />
+                )}
+              </div>
               {profile?.isVerified && (
-                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  <Typography variant="p" size="sm" weight="semibold" className="text-green-600 dark:text-green-400">
-                    Verified Developer
-                  </Typography>
+                <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-xl shadow-lg border-4 border-white">
+                  <CheckCircle className="w-5 h-5 fill-white text-blue-600" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 text-center md:text-left space-y-4">
+              <div>
+                <div className="flex flex-col md:flex-row items-center md:items-baseline gap-3 mb-2">
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-2 md:mb-0">
+                    {profile?.user?.name || 'Developer Profile'}
+                  </h1>
+                  {profile?.isActive && (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Available for work
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-slate-500">
+                   {profile?.location && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm font-medium">{profile.location}</span>
+                    </div>
+                   )}
+                   {profile?.portfolioUrl && (
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-purple-500" />
+                      <a href={profile.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:text-blue-600 transition-colors">
+                        Portfolio
+                      </a>
+                    </div>
+                   )}
+                </div>
+              </div>
+
+              <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
+                {profile?.bioSummary || 'Complete your profile to showcase your skills and start receiving project proposals from clients matched to your expertise.'}
+              </p>
+
+              {profile?.skills && profile.skills.length > 0 && (
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
+                  {profile.skills.map((skill, index) => (
+                    <span key={index} className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 hover:text-slate-900 transition-all cursor-default shadow-sm">
+                      {skill.replace('_', ' ')}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {error && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <Typography variant="p" className="text-red-600 dark:text-red-400">
-                {error}
-              </Typography>
+          <motion.div variants={itemVariants} className="p-4 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-5 h-5 text-red-500" />
             </div>
-          </div>
+            <p className="text-red-400 font-medium">{error}</p>
+          </motion.div>
         )}
 
         {success && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <Typography variant="p" className="text-green-600 dark:text-green-400">
-                Profile saved successfully!
-              </Typography>
+          <motion.div variants={itemVariants} className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-5 h-5 text-emerald-500" />
             </div>
-          </div>
+            <p className="text-emerald-400 font-medium">Profile saved successfully!</p>
+          </motion.div>
         )}
 
+        {/* Stats Grid */}
         {profile && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-400/10 to-emerald-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-white" />
+            <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-[2.5rem] bg-slate-900 border border-white/5 p-8 transition-all hover:bg-slate-800/80">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500" />
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                    <DollarSign className="w-6 h-6" />
                   </div>
-                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <div>
+                    <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Earnings</h3>
+                    <TrendingUp className="w-4 h-4 text-emerald-500 mt-1" />
+                  </div>
                 </div>
-                <Typography variant="h2" size="3xl" weight="bold" className="mb-1">
+                <div className="text-4xl font-black text-white tracking-tight">
                   {formatCurrency(profile.totalEarnings)}
-                </Typography>
-                <Typography variant="p" size="sm" color="muted">
-                  Total Earnings
-                </Typography>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
-                    <Briefcase className="w-6 h-6 text-white" />
-                  </div>
-                  <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <Typography variant="h2" size="3xl" weight="bold" className="mb-1">
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-[2.5rem] bg-slate-900 border border-white/5 p-8 transition-all hover:bg-slate-800/80">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-500" />
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                    <Briefcase className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Projects</h3>
+                    <div className="h-4 mt-1" />
+                  </div>
+                </div>
+                <div className="text-4xl font-black text-white tracking-tight">
                   {profile.totalProjects}
-                </Typography>
-                <Typography variant="p" size="sm" color="muted">
-                  Total Projects
-                </Typography>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                    <Award className="w-6 h-6 text-white" />
-                  </div>
-                  <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <span className="text-lg text-slate-500 font-medium ml-2">projects</span>
                 </div>
-                <Typography variant="h2" size="3xl" weight="bold" className="mb-1">
-                  {profile.completedProjects}
-                </Typography>
-                <Typography variant="p" size="sm" color="muted">
-                  Completed Projects
-                </Typography>
               </div>
-            </div>
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-[2.5rem] bg-slate-900 border border-white/5 p-8 transition-all hover:bg-slate-800/80">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500" />
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-slate-400 text-sm font-medium uppercase tracking-wider">Success Rate</h3>
+                    <div className="h-4 mt-1" />
+                  </div>
+                </div>
+                <div className="text-4xl font-black text-white tracking-tight">
+                  {profile.totalProjects > 0 ? Math.round((profile.completedProjects / profile.totalProjects) * 100) : 0}
+                  <span className="text-lg text-slate-500 font-medium ml-1">%</span>
+                </div>
+              </div>
+            </motion.div>
           </div>
         )}
 
-        <DeveloperProfileForm
-          initialData={profile ? {
-            portfolioUrl: profile.portfolioUrl,
-            bioSummary: profile.bioSummary,
-            location: profile.location,
-            timeZone: profile.timeZone || undefined,
-            skills: profile.skills,
-          } : undefined}
-          onSubmit={handleSubmit}
-          isLoading={isSaving}
-        />
-      </div>
-    </DashboardLayout>
+        <motion.div variants={itemVariants}>
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/5 blur-3xl rounded-[3rem]" />
+            <DeveloperProfileForm
+              initialData={profile ? {
+                portfolioUrl: profile.portfolioUrl,
+                bioSummary: profile.bioSummary,
+                location: profile.location,
+                timeZone: profile.timeZone || undefined,
+                skills: profile.skills,
+              } : undefined}
+              onSubmit={handleSubmit}
+              isLoading={isSaving}
+              className="bg-white/95 backdrop-blur-xl border border-white/40 rounded-[2.5rem] shadow-xl overflow-hidden"
+            />
+          </div>
+        </motion.div>
+      </motion.div>
+    </>
   );
 }
 

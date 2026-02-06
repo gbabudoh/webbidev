@@ -1,9 +1,10 @@
 'use client';
 
 import PublicLayout from '@/components/layouts/PublicLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Typography, Button, Badge } from '@/components/ui';
+import { Button, Badge } from '@/components/ui';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import { 
   FileText, 
   Users, 
@@ -16,508 +17,548 @@ import {
   Sparkles,
   ArrowRight,
   Lock,
-  TrendingUp
+  Clock,
+  Star
 } from 'lucide-react';
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5 }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
 
 export default function HowItWorksPage() {
   return (
     <PublicLayout>
-      <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
         {/* Hero Section */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/30 dark:via-emerald-950/30 dark:to-teal-950/30" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-teal-400/20 to-emerald-400/20 rounded-full blur-3xl" />
+          {/* Animated Background */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50" />
+            <motion.div 
+              className="absolute top-0 right-0 w-[700px] h-[700px] bg-gradient-to-br from-emerald-400/20 via-teal-400/20 to-cyan-400/20 rounded-full blur-3xl"
+              animate={{ 
+                scale: [1, 1.1, 1],
+                x: [0, 30, 0],
+                y: [0, -30, 0]
+              }}
+              transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div 
+              className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-green-400/20 via-emerald-400/20 to-teal-400/20 rounded-full blur-3xl"
+              animate={{ 
+                scale: [1, 1.15, 1],
+                x: [0, -30, 0],
+                y: [0, 30, 0]
+              }}
+              transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
           
           <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-zinc-200 dark:border-zinc-800 mb-6">
-                <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <Typography variant="p" size="sm" weight="medium" className="text-green-600 dark:text-green-400">
+            <motion.div 
+              className="text-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              {/* Badge */}
+              <motion.div 
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-emerald-200/50 shadow-lg shadow-emerald-200/20 mb-8"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-semibold text-emerald-700">
                   Simple & Secure Process
-                </Typography>
-              </div>
-              <Typography variant="h1" size="4xl" weight="bold" className="mb-6 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                How It Works
-              </Typography>
-              <Typography variant="p" size="xl" color="muted" className="max-w-3xl mx-auto">
-                A simple, secure way to connect with developers and get your projects done right
-              </Typography>
-            </div>
+                </span>
+              </motion.div>
+
+              {/* Title */}
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight">
+                <span className="text-slate-900">How </span>
+                <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  Webbidev
+                </span>
+                <span className="text-slate-900"> Works</span>
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto mb-12">
+                A seamless journey from project idea to successful delivery, powered by our secure milestone-based system.
+              </p>
+
+              {/* Quick Stats */}
+              <motion.div 
+                className="flex flex-wrap items-center justify-center gap-6 md:gap-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                {[
+                  { icon: Shield, label: 'Secure Escrow', value: '100%' },
+                  { icon: Clock, label: 'Avg. Response', value: '<24h' },
+                  { icon: Star, label: 'Success Rate', value: '98%' },
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-slate-200/50 shadow-sm"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <stat.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                      <p className="text-sm text-slate-500">{stat.label}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
           </div>
         </section>
 
         {/* Main Content */}
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="space-y-16">
+          <div className="space-y-24">
             {/* For Clients Section */}
-            <section className="relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-50/30 to-transparent dark:via-blue-950/10 rounded-3xl" />
-              <div className="relative text-center mb-12 pt-8">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 mb-4">
-                  <Briefcase className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <Typography variant="p" size="sm" weight="medium" className="text-blue-600 dark:text-blue-400">
-                    For Clients
-                  </Typography>
+            <section>
+              <motion.div 
+                className="text-center mb-16"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 border border-blue-200 mb-6">
+                  <Briefcase className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-600">For Clients</span>
                 </div>
-                <Typography variant="h2" size="3xl" weight="bold" className="mb-4">
-                  Post, Review, and Collaborate
-                </Typography>
-                <Typography variant="p" size="lg" color="muted" className="max-w-3xl mx-auto">
-                  Post your project, review proposals, and work with developers through our milestone-based system
-                </Typography>
-              </div>
+                <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+                  Post, Review & Collaborate
+                </h2>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                  Three simple steps to get your project completed by expert developers
+                </p>
+              </motion.div>
 
-              <div className="relative space-y-16 pb-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white mb-4">
-                      <FileText className="w-4 h-4" />
-                      <span className="font-bold">Step 1</span>
-                    </div>
-                    <Typography variant="h3" size="xl" weight="bold" className="mb-3">
-                      Post Your Project
-                    </Typography>
-                    <Typography variant="p" color="muted" className="mb-4">
-                      Create a detailed project description with your requirements, budget, and deadline. Use our Development Scope Bar to break down your project into clear, measurable milestones.
-                    </Typography>
-                    <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Define project scope and requirements</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Set budget and timeline</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Break down into 3-5 milestones with clear deliverables</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="relative rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border border-blue-200 dark:border-blue-800 p-8 shadow-lg">
-                    <div className="space-y-4">
-                      <div className="h-4 bg-gradient-to-r from-blue-300 to-cyan-300 dark:from-blue-700 dark:to-cyan-700 rounded w-3/4 animate-pulse"></div>
-                      <div className="h-4 bg-gradient-to-r from-blue-300 to-cyan-300 dark:from-blue-700 dark:to-cyan-700 rounded w-full"></div>
-                      <div className="h-4 bg-gradient-to-r from-blue-300 to-cyan-300 dark:from-blue-700 dark:to-cyan-700 rounded w-5/6"></div>
-                      <div className="h-24 bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-800 dark:to-cyan-800 rounded-xl"></div>
-                      <div className="space-y-2">
-                        <div className="h-3 bg-gradient-to-r from-blue-200 to-cyan-200 dark:from-blue-800 dark:to-cyan-800 rounded w-1/2"></div>
-                        <div className="h-3 bg-gradient-to-r from-blue-200 to-cyan-200 dark:from-blue-800 dark:to-cyan-800 rounded w-2/3"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* Client Steps */}
+              <div className="relative">
+                {/* Connection Line */}
+                <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-emerald-500 -translate-x-1/2" />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div className="relative rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800 p-8 shadow-lg order-2 md:order-1">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600"></div>
-                        <div className="flex-1">
-                          <div className="h-4 bg-gradient-to-r from-purple-300 to-pink-300 dark:from-purple-700 dark:to-pink-700 rounded w-2/3 mb-2"></div>
-                          <div className="h-3 bg-gradient-to-r from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800 rounded w-1/2"></div>
-                        </div>
+                <div className="space-y-12 lg:space-y-0">
+                  {/* Step 1 */}
+                  <motion.div 
+                    className="relative lg:grid lg:grid-cols-2 lg:gap-16 items-center"
+                    initial={{ opacity: 0, x: -30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                  >
+                    <div className="lg:text-right lg:pr-16">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white mb-4 shadow-lg shadow-blue-500/25">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-bold">Step 1</span>
                       </div>
-                      <div className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600"></div>
-                        <div className="flex-1">
-                          <div className="h-4 bg-gradient-to-r from-purple-300 to-pink-300 dark:from-purple-700 dark:to-pink-700 rounded w-2/3 mb-2"></div>
-                          <div className="h-3 bg-gradient-to-r from-purple-200 to-pink-200 dark:from-purple-800 dark:to-pink-800 rounded w-1/2"></div>
+                      <h3 className="text-2xl font-bold text-slate-900 mb-4">Post Your Project</h3>
+                      <p className="text-slate-600 mb-6">
+                        Create a detailed project description with requirements, budget, and timeline. Use our Development Scope Bar to break down your project into clear milestones.
+                      </p>
+                      <ul className="space-y-3">
+                        {['Define scope & requirements', 'Set budget & timeline', 'Create 3-5 milestones'].map((item, i) => (
+                          <li key={i} className="flex items-center gap-3 justify-start lg:justify-end">
+                            <span className="text-slate-700 font-medium">{item}</span>
+                            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="mt-8 lg:mt-0 lg:pl-16 relative">
+                      {/* Step Number Circle */}
+                      <div className="hidden lg:flex absolute -left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30 z-10">
+                        1
+                      </div>
+                      <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
+                        <div className="relative p-8 rounded-3xl bg-white border border-slate-200 shadow-xl">
+                          <div className="space-y-4">
+                            <div className="h-4 bg-gradient-to-r from-blue-200 to-cyan-200 rounded w-3/4" />
+                            <div className="h-3 bg-slate-100 rounded w-full" />
+                            <div className="h-3 bg-slate-100 rounded w-5/6" />
+                            <div className="h-24 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-100 flex items-center justify-center">
+                              <FileText className="w-8 h-8 text-blue-400" />
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="h-8 w-20 bg-blue-100 rounded-lg" />
+                              <div className="h-8 w-24 bg-cyan-100 rounded-lg" />
+                              <div className="h-8 w-16 bg-teal-100 rounded-lg" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="order-1 md:order-2">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 text-white mb-4">
-                      <Users className="w-4 h-4" />
-                      <span className="font-bold">Step 2</span>
-                    </div>
-                    <Typography variant="h3" size="xl" weight="bold" className="mb-3">
-                      Review Proposals
-                    </Typography>
-                    <Typography variant="p" color="muted" className="mb-4">
-                      Developers submit proposals with their approach, timeline, and pricing. Review their profiles, portfolios, and past work to find the best fit for your project.
-                    </Typography>
-                    <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Browse developer profiles and portfolios</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Compare proposals and expertise</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Select the right developer for your project</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                  </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white mb-4">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="font-bold">Step 3</span>
-                    </div>
-                    <Typography variant="h3" size="xl" weight="bold" className="mb-3">
-                      Work with Milestones
-                    </Typography>
-                    <Typography variant="p" color="muted" className="mb-4">
-                      Projects are broken down into milestones with clear deliverables. Funds are held in escrow and released as each milestone is completed and approved.
-                    </Typography>
-                    <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Clear milestone definitions and deliverables</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Secure escrow payments protect your funds</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Approve milestones to release payments</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="relative rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 p-8 shadow-lg">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm">
-                        <div className="h-4 bg-gradient-to-r from-green-300 to-emerald-300 dark:from-green-700 dark:to-emerald-700 rounded w-1/2"></div>
-                        <Badge variant="success" size="sm" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Complete
-                        </Badge>
+                  {/* Step 2 */}
+                  <motion.div 
+                    className="relative lg:grid lg:grid-cols-2 lg:gap-16 items-center"
+                    initial={{ opacity: 0, x: 30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                  >
+                    <div className="order-2 lg:order-1 mt-8 lg:mt-0 lg:pr-16 relative">
+                      {/* Step Number Circle */}
+                      <div className="hidden lg:flex absolute -right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 items-center justify-center text-white font-bold text-lg shadow-lg shadow-purple-500/30 z-10">
+                        2
                       </div>
-                      <div className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm">
-                        <div className="h-4 bg-gradient-to-r from-blue-300 to-cyan-300 dark:from-blue-700 dark:to-cyan-700 rounded w-1/2"></div>
-                        <Badge variant="primary" size="sm">In Progress</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm">
-                        <div className="h-4 bg-gradient-to-r from-zinc-300 to-zinc-400 dark:from-zinc-700 dark:to-zinc-600 rounded w-1/2"></div>
-                        <Badge variant="secondary" size="sm">Pending</Badge>
+                      <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
+                        <div className="relative p-8 rounded-3xl bg-white border border-slate-200 shadow-xl">
+                          <div className="space-y-4">
+                            {[1, 2, 3].map((_, i) => (
+                              <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
+                                <div className="flex-1">
+                                  <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+                                  <div className="flex items-center gap-2">
+                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                    <div className="h-3 bg-slate-100 rounded w-12" />
+                                  </div>
+                                </div>
+                                <ArrowRight className="w-5 h-5 text-slate-400" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    <div className="order-1 lg:order-2 lg:pl-16">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white mb-4 shadow-lg shadow-purple-500/25">
+                        <Users className="w-4 h-4" />
+                        <span className="font-bold">Step 2</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-900 mb-4">Review Proposals</h3>
+                      <p className="text-slate-600 mb-6">
+                        Developers submit proposals with their approach and pricing. Review profiles, portfolios, and past work to find the perfect fit.
+                      </p>
+                      <ul className="space-y-3">
+                        {['Browse developer profiles', 'Compare proposals', 'Select best fit'].map((item, i) => (
+                          <li key={i} className="flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                            <span className="text-slate-700 font-medium">{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </motion.div>
+
+                  {/* Step 3 */}
+                  <motion.div 
+                    className="relative lg:grid lg:grid-cols-2 lg:gap-16 items-center"
+                    initial={{ opacity: 0, x: -30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                  >
+                    <div className="lg:text-right lg:pr-16">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white mb-4 shadow-lg shadow-emerald-500/25">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="font-bold">Step 3</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-900 mb-4">Work with Milestones</h3>
+                      <p className="text-slate-600 mb-6">
+                        Funds are held in secure escrow and released as each milestone is completed and approved. Full control, zero risk.
+                      </p>
+                      <ul className="space-y-3">
+                        {['Clear milestone definitions', 'Secure escrow payments', 'Approve to release'].map((item, i) => (
+                          <li key={i} className="flex items-center gap-3 justify-start lg:justify-end">
+                            <span className="text-slate-700 font-medium">{item}</span>
+                            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="mt-8 lg:mt-0 lg:pl-16 relative">
+                      {/* Step Number Circle */}
+                      <div className="hidden lg:flex absolute -left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 items-center justify-center text-white font-bold text-lg shadow-lg shadow-emerald-500/30 z-10">
+                        3
+                      </div>
+                      <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur opacity-20 group-hover:opacity-30 transition-opacity" />
+                        <div className="relative p-8 rounded-3xl bg-white border border-slate-200 shadow-xl">
+                          <div className="space-y-3">
+                            {[
+                              { label: 'Design Phase', status: 'Complete', color: 'emerald' },
+                              { label: 'Development', status: 'In Progress', color: 'blue' },
+                              { label: 'Testing', status: 'Pending', color: 'slate' },
+                            ].map((milestone, i) => (
+                              <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "w-3 h-3 rounded-full",
+                                    milestone.color === 'emerald' && "bg-emerald-500",
+                                    milestone.color === 'blue' && "bg-blue-500 animate-pulse",
+                                    milestone.color === 'slate' && "bg-slate-300"
+                                  )} />
+                                  <span className="font-medium text-slate-700">{milestone.label}</span>
+                                </div>
+                                <Badge 
+                                  variant={milestone.color === 'emerald' ? 'success' : milestone.color === 'blue' ? 'primary' : 'secondary'}
+                                  size="sm"
+                                >
+                                  {milestone.status}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
               </div>
             </section>
 
             {/* For Developers Section */}
-            <section className="relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange-50/30 to-transparent dark:via-orange-950/10 rounded-3xl" />
-              <div className="relative text-center mb-12 pt-8">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 mb-4">
-                  <Code className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                  <Typography variant="p" size="sm" weight="medium" className="text-orange-600 dark:text-orange-400">
-                    For Developers
-                  </Typography>
+            <section>
+              <motion.div 
+                className="text-center mb-16"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 border border-orange-200 mb-6">
+                  <Code className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-600">For Developers</span>
                 </div>
-                <Typography variant="h2" size="3xl" weight="bold" className="mb-4">
-                  Browse, Propose, and Earn
-                </Typography>
-                <Typography variant="p" size="lg" color="muted" className="max-w-3xl mx-auto">
-                  Browse projects, submit proposals, and get paid securely through our milestone-based system
-                </Typography>
-              </div>
+                <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+                  Browse, Propose & Earn
+                </h2>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+                  Find great projects and get paid securely through our milestone system
+                </p>
+              </motion.div>
 
-              <div className="relative space-y-16 pb-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white mb-4">
-                      <Users className="w-4 h-4" />
-                      <span className="font-bold">Step 1</span>
+              {/* Developer Steps - Horizontal Cards */}
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                variants={staggerContainer}
+                initial="initial"
+                whileInView="animate"
+                viewport={{ once: true }}
+              >
+                {[
+                  {
+                    step: 1,
+                    icon: Users,
+                    title: 'Complete Your Profile',
+                    description: 'Showcase your skills, portfolio, and experience. Select your top 5 skills and set up Stripe for payments.',
+                    color: 'from-orange-500 to-red-500',
+                    items: ['Add portfolio & bio', 'Select 5 key skills', 'Setup Stripe Connect']
+                  },
+                  {
+                    step: 2,
+                    icon: Target,
+                    title: 'Browse & Propose',
+                    description: 'Filter projects by skill and budget. Submit detailed proposals with your approach and timeline.',
+                    color: 'from-amber-500 to-orange-500',
+                    items: ['Filter by skills', 'Review requirements', 'Submit proposals']
+                  },
+                  {
+                    step: 3,
+                    icon: DollarSign,
+                    title: 'Complete & Get Paid',
+                    description: 'Work through milestones, submit deliverables, and receive secure payments upon approval.',
+                    color: 'from-emerald-500 to-teal-500',
+                    items: ['Complete milestones', 'Submit deliverables', 'Get paid securely']
+                  }
+                ].map((step) => (
+                  <motion.div
+                    key={step.step}
+                    variants={fadeInUp}
+                    className="relative group"
+                  >
+                    <div className={cn("absolute -inset-1 bg-gradient-to-r rounded-3xl blur opacity-20 group-hover:opacity-30 transition-opacity", step.color)} />
+                    <div className="relative h-full p-8 rounded-3xl bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <div className={cn("inline-flex items-center gap-2 px-4 py-2 rounded-full text-white mb-6 shadow-lg bg-gradient-to-r", step.color)}>
+                        <step.icon className="w-4 h-4" />
+                        <span className="font-bold">Step {step.step}</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-3">{step.title}</h3>
+                      <p className="text-slate-600 mb-6">{step.description}</p>
+                      <ul className="space-y-2">
+                        {step.items.map((item, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                            <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <Typography variant="h3" size="xl" weight="bold" className="mb-3">
-                      Complete Your Profile
-                    </Typography>
-                    <Typography variant="p" color="muted" className="mb-4">
-                      Create a comprehensive profile showcasing your skills, portfolio, and experience. Select 5 key skills that best represent your expertise.
-                    </Typography>
-                    <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Add your portfolio URL and bio</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Select 5 key skills</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Complete Stripe Connect setup for payments</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <Card className="bg-zinc-100 dark:bg-zinc-900">
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="h-12 w-12 rounded-full bg-foreground mx-auto"></div>
-                        <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-2/3 mx-auto"></div>
-                        <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-1/2 mx-auto"></div>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          <div className="h-6 bg-zinc-300 dark:bg-zinc-700 rounded w-20"></div>
-                          <div className="h-6 bg-zinc-300 dark:bg-zinc-700 rounded w-20"></div>
-                          <div className="h-6 bg-zinc-300 dark:bg-zinc-700 rounded w-20"></div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <Card className="bg-zinc-100 dark:bg-zinc-900 order-2 md:order-1">
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="p-4 bg-white dark:bg-zinc-950 rounded">
-                          <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-full mb-2"></div>
-                          <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-5/6"></div>
-                        </div>
-                        <div className="p-4 bg-white dark:bg-zinc-950 rounded">
-                          <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-full mb-2"></div>
-                          <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-5/6"></div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <div className="order-1 md:order-2">
-                    <Badge variant="primary" size="lg" className="mb-4">
-                      Step 2
-                    </Badge>
-                    <Typography variant="h3" size="xl" weight="bold" className="mb-3">
-                      Browse & Submit Proposals
-                    </Typography>
-                    <Typography variant="p" color="muted" className="mb-4">
-                      Browse open projects that match your skills. Submit detailed proposals explaining your approach, timeline, and pricing.
-                    </Typography>
-                    <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Filter projects by skill type and budget</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Review project requirements and milestones</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Submit compelling proposals</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <Badge variant="primary" size="lg" className="mb-4">
-                      Step 3
-                    </Badge>
-                    <Typography variant="h3" size="xl" weight="bold" className="mb-3">
-                      Complete Milestones & Get Paid
-                    </Typography>
-                    <Typography variant="p" color="muted" className="mb-4">
-                      Work through milestones, submit deliverables, and get paid securely. Funds are held in escrow and released when milestones are approved.
-                    </Typography>
-                    <ul className="space-y-2 text-zinc-600 dark:text-zinc-400">
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Complete milestones according to scope</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Submit deliverables for client approval</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-foreground mt-1">✓</span>
-                        <span>Receive payments directly to your account</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <Card className="bg-zinc-100 dark:bg-zinc-900">
-                    <CardContent className="pt-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-950 rounded">
-                          <div>
-                            <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-1/2 mb-1"></div>
-                            <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-1/3"></div>
-                          </div>
-                          <div className="text-right">
-                            <div className="h-4 bg-green-300 dark:bg-green-700 rounded w-16 mb-1"></div>
-                            <Badge variant="success" size="sm">Paid</Badge>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-950 rounded">
-                          <div>
-                            <div className="h-4 bg-zinc-300 dark:bg-zinc-700 rounded w-1/2 mb-1"></div>
-                            <div className="h-3 bg-zinc-300 dark:bg-zinc-700 rounded w-1/3"></div>
-                          </div>
-                          <div className="text-right">
-                            <div className="h-4 bg-yellow-300 dark:bg-yellow-700 rounded w-16 mb-1"></div>
-                            <Badge variant="primary" size="sm">Pending</Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+                  </motion.div>
+                ))}
+              </motion.div>
             </section>
 
-            {/* Development Scope Bar Section */}
-            <section>
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-12 shadow-2xl">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+            {/* Development Scope Bar Feature */}
+            <motion.section
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-10 md:p-16 shadow-2xl">
+                {/* Animated Background Elements */}
+                <motion.div 
+                  className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl"
+                  animate={{ scale: [1, 1.2, 1], rotate: [0, 45, 0] }}
+                  transition={{ duration: 15, repeat: Infinity }}
+                />
+                <motion.div 
+                  className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/10 rounded-full blur-3xl"
+                  animate={{ scale: [1, 1.3, 1], rotate: [0, -45, 0] }}
+                  transition={{ duration: 12, repeat: Infinity }}
+                />
                 
                 <div className="relative">
-                  <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-4">
+                  <div className="text-center mb-12">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-6">
                       <Target className="w-4 h-4 text-white" />
-                      <Typography variant="p" size="sm" weight="medium" className="text-white">
-                        Core Feature
-                      </Typography>
+                      <span className="text-sm font-semibold text-white">Core Feature</span>
                     </div>
-                    <Typography variant="h2" size="2xl" weight="bold" className="mb-3 text-white">
+                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                       The Development Scope Bar
-                    </Typography>
-                    <Typography variant="p" size="lg" className="text-white/80 max-w-3xl mx-auto">
-                      Our unique milestone system ensures clarity and protects both parties
-                    </Typography>
+                    </h2>
+                    <p className="text-lg text-white/80 max-w-2xl mx-auto">
+                      Our unique milestone system ensures clarity and protects both clients and developers
+                    </p>
                   </div>
                   
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8">
-                    <div className="space-y-8">
-                      <div>
-                        <Typography variant="h3" size="lg" weight="bold" className="mb-3 text-white">
-                          What is the Development Scope Bar?
-                        </Typography>
-                        <Typography variant="p" className="mb-4 text-white/90">
-                          The Development Scope Bar is our mandatory milestone breakdown system that requires every project to be divided into 3-5 clear, measurable milestones. Each milestone has:
-                        </Typography>
-                        <ul className="space-y-3 text-white/90">
-                          <li className="flex items-start gap-3">
-                            <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
-                            <span>A clear title and description</span>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* What it is */}
+                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-8">
+                      <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5" />
+                        What is it?
+                      </h3>
+                      <p className="text-white/90 mb-6">
+                        Every project is divided into 3-5 clear, measurable milestones. Each milestone includes:
+                      </p>
+                      <ul className="space-y-4">
+                        {[
+                          'Clear title and description',
+                          'Measurable completion criteria',
+                          'Allocated budget percentage'
+                        ].map((item, i) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-white/90">{item}</span>
                           </li>
-                          <li className="flex items-start gap-3">
-                            <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
-                            <span>Objective, measurable criteria for completion (Definition of Done)</span>
-                          </li>
-                          <li className="flex items-start gap-3">
-                            <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
-                            <span>A percentage of the total budget allocated</span>
-                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Protection Cards */}
+                    <div className="space-y-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                            <Shield className="w-5 h-5 text-white" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-white">For Clients</h4>
+                        </div>
+                        <ul className="space-y-2 text-sm text-white/80">
+                          {['Clear expectations', 'Funds held in escrow', 'Review before payment', 'Dispute resolution'].map((item, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                              {item}
+                            </li>
+                          ))}
                         </ul>
                       </div>
-                      <div>
-                        <Typography variant="h3" size="lg" weight="bold" className="mb-4 text-white">
-                          How It Protects You
-                        </Typography>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Shield className="w-5 h-5 text-white" />
-                              <Typography variant="h4" size="sm" weight="semibold" className="text-white">
-                                For Clients
-                              </Typography>
-                            </div>
-                            <ul className="space-y-2 text-white/90 text-sm">
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Clear expectations for each milestone</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Funds held in escrow until approval</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Ability to review work before payment</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Dispute resolution process available</span>
-                              </li>
-                            </ul>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                            <Lock className="w-5 h-5 text-white" />
                           </div>
-                          <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Lock className="w-5 h-5 text-white" />
-                              <Typography variant="h4" size="sm" weight="semibold" className="text-white">
-                                For Developers
-                              </Typography>
-                            </div>
-                            <ul className="space-y-2 text-white/90 text-sm">
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Clear project scope and requirements</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Guaranteed payment upon milestone approval</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Protection from scope creep</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span>Fair dispute resolution process</span>
-                              </li>
-                            </ul>
-                          </div>
+                          <h4 className="text-lg font-semibold text-white">For Developers</h4>
                         </div>
+                        <ul className="space-y-2 text-sm text-white/80">
+                          {['Clear project scope', 'Guaranteed payment', 'Protection from scope creep', 'Fair resolution'].map((item, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </section>
+            </motion.section>
 
             {/* CTA Section */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 p-12 text-center shadow-2xl">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <motion.section 
+              className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-10 md:p-16 text-center shadow-2xl"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              {/* Background Elements */}
+              <motion.div 
+                className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 8, repeat: Infinity }}
+              />
+              <motion.div 
+                className="absolute bottom-0 left-0 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+                animate={{ scale: [1.2, 1, 1.2] }}
+                transition={{ duration: 8, repeat: Infinity }}
+              />
               
               <div className="relative">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-8">
                   <Sparkles className="w-4 h-4 text-white" />
-                  <Typography variant="p" size="sm" weight="medium" className="text-white">
-                    Start Your Journey
-                  </Typography>
+                  <span className="text-sm font-semibold text-white">Start Your Journey</span>
                 </div>
-                <Typography variant="h2" size="3xl" weight="bold" className="mb-4 text-white">
+                <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
                   Ready to Get Started?
-                </Typography>
-                <Typography variant="p" size="lg" className="mb-8 max-w-2xl mx-auto text-white/90">
+                </h2>
+                <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
                   Join Webbidev today and experience a better way to work with developers or find your next project.
-                </Typography>
+                </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/signup?role=CLIENT">
-                    <Button variant="secondary" size="lg" className="bg-white text-green-600 hover:bg-white/90 shadow-lg gap-2">
+                    <Button className="bg-white text-emerald-600 hover:bg-white/90 px-8 py-4 rounded-xl font-semibold shadow-lg shadow-emerald-900/20 transition-all hover:scale-105 cursor-pointer">
                       Post a Project
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </Link>
                   <Link href="/signup?role=DEVELOPER">
-                    <Button variant="outline" size="lg" className="bg-transparent border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm gap-2">
+                    <Button className="bg-transparent border-2 border-white text-white hover:bg-white/10 px-8 py-4 rounded-xl font-semibold backdrop-blur-sm transition-all hover:scale-105 cursor-pointer">
                       Become a Developer
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </Link>
                 </div>
               </div>
-            </section>
+            </motion.section>
           </div>
         </div>
       </div>
     </PublicLayout>
   );
 }
-
