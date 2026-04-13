@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import PublicLayout from '@/components/layouts/PublicLayout';
 import { Button, Badge } from '@/components/ui';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { 
-  Code2, 
-  Briefcase, 
-  Building2, 
-  Check, 
-  ArrowRight, 
+import {
+  Code2,
+  Briefcase,
+  Building2,
+  Check,
+  ArrowRight,
   Sparkles,
   Shield,
   Zap,
@@ -36,6 +37,8 @@ const staggerContainer = {
 };
 
 export default function PricingPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
   const pricingPlans = [
     {
       name: 'For Developers',
@@ -58,7 +61,8 @@ export default function PricingPage() {
       ],
       cta: 'Start as Developer',
       href: '/signup?role=DEVELOPER',
-      featured: false
+      featured: false,
+      outline: false
     },
     {
       name: 'For Clients',
@@ -81,7 +85,8 @@ export default function PricingPage() {
       ],
       cta: 'Start as Client',
       href: '/signup?role=CLIENT',
-      featured: true
+      featured: true,
+      outline: false
     },
     {
       name: 'Enterprise',
@@ -91,7 +96,7 @@ export default function PricingPage() {
       note: 'Volume discounts available',
       icon: Building2,
       gradient: 'from-purple-500 to-pink-500',
-      buttonGradient: '',
+      buttonGradient: 'from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700',
       features: [
         'Dedicated account manager',
         'Custom contract terms',
@@ -151,17 +156,17 @@ export default function PricingPage() {
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(59,130,246,0.15),transparent_50%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(139,92,246,0.15),transparent_50%)]" />
-            <motion.div 
+            <motion.div
               className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-3xl"
-              animate={{ 
+              animate={{
                 scale: [1, 1.2, 1],
                 opacity: [0.3, 0.5, 0.3]
               }}
               transition={{ duration: 8, repeat: Infinity }}
             />
-            <motion.div 
+            <motion.div
               className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-3xl"
-              animate={{ 
+              animate={{
                 scale: [1.2, 1, 1.2],
                 opacity: [0.3, 0.5, 0.3]
               }}
@@ -170,14 +175,14 @@ export default function PricingPage() {
           </div>
 
           <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-            <motion.div 
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
               {/* Badge */}
-              <motion.div 
+              <motion.div
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -203,8 +208,8 @@ export default function PricingPage() {
               </p>
 
               {/* Trust Indicators */}
-              <motion.div 
-                className="flex flex-wrap items-center justify-center gap-6"
+              <motion.div
+                className="flex flex-wrap items-center justify-center gap-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -213,13 +218,16 @@ export default function PricingPage() {
                   { icon: Shield, label: '100% Secure' },
                   { icon: Zap, label: 'Instant Payouts' },
                   { icon: Users, label: '10K+ Users' },
-                ].map((item) => (
-                  <div 
+                ].map((item, i) => (
+                  <div
                     key={item.label}
-                    className="flex items-center gap-2 text-white/60"
+                    className="flex items-center gap-2.5 text-white/80"
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <div className="shrink-0 w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
+                      <item.icon className="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <span className="text-sm font-semibold">{item.label}</span>
+                    {i < 2 && <span className="hidden sm:block w-px h-5 bg-white/20 ml-3" />}
                   </div>
                 ))}
               </motion.div>
@@ -237,7 +245,7 @@ export default function PricingPage() {
         {/* Pricing Cards */}
         <section className="relative py-20 -mt-1 bg-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <motion.div 
+            <motion.div
               className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
               variants={staggerContainer}
               initial="initial"
@@ -258,16 +266,16 @@ export default function PricingPage() {
                     "absolute -inset-1 rounded-3xl blur opacity-0 group-hover:opacity-30 transition-opacity duration-500",
                     `bg-gradient-to-r ${plan.gradient}`
                   )} />
-                  
+
                   <div className={cn(
                     "relative h-full bg-white rounded-3xl border-2 overflow-hidden transition-all duration-300",
-                    plan.featured 
-                      ? "border-blue-500 shadow-2xl shadow-blue-500/20" 
+                    plan.featured
+                      ? "border-blue-500 shadow-2xl shadow-blue-500/20"
                       : "border-slate-200 hover:border-slate-300 hover:shadow-xl"
                   )}>
                     {/* Top Gradient Bar */}
                     <div className={cn("h-1.5 bg-gradient-to-r", plan.gradient)} />
-                    
+
                     {/* Featured Badge */}
                     {plan.featured && (
                       <div className="absolute top-6 right-6">
@@ -320,11 +328,11 @@ export default function PricingPage() {
 
                       {/* CTA */}
                       <Link href={plan.href} className="block">
-                        <Button 
+                        <Button
                           className={cn(
                             "w-full py-6 rounded-xl font-semibold text-base transition-all duration-300 cursor-pointer",
-                            plan.outline 
-                              ? "border-2 border-slate-200 bg-white text-slate-900 hover:bg-slate-50 hover:border-slate-300" 
+                            plan.outline
+                              ? "border-2 border-slate-200 bg-white text-slate-900 hover:bg-slate-50 hover:border-slate-300"
                               : `bg-gradient-to-r ${plan.buttonGradient} text-white shadow-lg hover:shadow-xl`
                           )}
                         >
@@ -343,7 +351,7 @@ export default function PricingPage() {
         {/* Comparison Table */}
         <section className="relative py-20 bg-slate-50">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <motion.div 
+            <motion.div
               className="text-center mb-16"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -361,18 +369,23 @@ export default function PricingPage() {
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
+              {/* Mobile scroll hint */}
+              <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100">
+                <ArrowRight className="w-3 h-3 text-blue-500" />
+                <span className="text-xs text-blue-600 font-medium">Scroll to compare</span>
+              </div>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[560px]">
                   <thead>
                     <tr className="border-b-2 border-slate-100">
-                      <th className="px-8 py-6 text-left text-sm font-bold text-slate-900">Feature</th>
-                      <th className="px-8 py-6 text-center">
+                      <th className="px-6 py-6 text-left text-sm font-bold text-slate-900 w-1/3">Feature</th>
+                      <th className="px-6 py-6 text-center w-1/4">
                         <div className="flex items-center justify-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                             <Sparkles className="w-4 h-4 text-white" />
@@ -380,26 +393,26 @@ export default function PricingPage() {
                           <span className="text-sm font-bold text-blue-600">Webbidev</span>
                         </div>
                       </th>
-                      <th className="px-8 py-6 text-center text-sm font-bold text-slate-400">Competitor A</th>
-                      <th className="px-8 py-6 text-center text-sm font-bold text-slate-400">Competitor B</th>
+                      <th className="px-6 py-6 text-center text-sm font-bold text-slate-400 w-1/4">Competitor A</th>
+                      <th className="px-6 py-6 text-center text-sm font-bold text-slate-400 w-1/4">Competitor B</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {comparisonData.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-8 py-5 text-sm font-medium text-slate-900">{row.feature}</td>
-                        <td className="px-8 py-5 text-center">
+                        <td className="px-6 py-5 text-sm font-medium text-slate-900">{row.feature}</td>
+                        <td className="px-6 py-5 text-center">
                           <span className={cn(
                             "inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-semibold",
-                            row.highlight 
-                              ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md" 
+                            row.highlight
+                              ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md"
                               : "bg-blue-100 text-blue-700"
                           )}>
                             {row.webbidev}
                           </span>
                         </td>
-                        <td className="px-8 py-5 text-center text-sm text-slate-500">{row.compA}</td>
-                        <td className="px-8 py-5 text-center text-sm text-slate-500">{row.compB}</td>
+                        <td className="px-6 py-5 text-center text-sm text-slate-500">{row.compA}</td>
+                        <td className="px-6 py-5 text-center text-sm text-slate-500">{row.compB}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -412,7 +425,7 @@ export default function PricingPage() {
         {/* FAQ Section */}
         <section className="relative py-20 bg-white">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <motion.div 
+            <motion.div
               className="text-center mb-16"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -430,36 +443,62 @@ export default function PricingPage() {
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="space-y-4"
               variants={staggerContainer}
               initial="initial"
               whileInView="animate"
               viewport={{ once: true }}
             >
-              {faqs.map((faq, i) => (
-                <motion.details 
-                  key={i} 
-                  variants={fadeInUp}
-                  className="group bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 hover:border-slate-200 transition-colors"
-                >
-                  <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
-                    <span className="text-lg font-semibold text-slate-900 pr-4">{faq.q}</span>
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center group-open:bg-blue-500 group-open:border-blue-500 transition-all">
-                      <ChevronDown className="w-5 h-5 text-slate-600 group-open:text-white group-open:rotate-180 transition-all" />
-                    </div>
-                  </summary>
-                  <div className="px-6 pb-6">
-                    <p className="text-slate-600 leading-relaxed">{faq.a}</p>
-                  </div>
-                </motion.details>
-              ))}
+              {faqs.map((faq, i) => {
+                const isOpen = openFaq === i;
+                return (
+                  <motion.div
+                    key={i}
+                    variants={fadeInUp}
+                    className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 hover:border-slate-200 transition-colors"
+                  >
+                    <button
+                      className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
+                      onClick={() => setOpenFaq(isOpen ? null : i)}
+                      aria-expanded={isOpen}
+                    >
+                      <span className="text-lg font-semibold text-slate-900 pr-4">{faq.q}</span>
+                      <div className={cn(
+                        "shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-300",
+                        isOpen
+                          ? "bg-blue-500 border-blue-500"
+                          : "bg-white border-slate-200"
+                      )}>
+                        <ChevronDown className={cn(
+                          "w-5 h-5 transition-all duration-300",
+                          isOpen ? "text-white rotate-180" : "text-slate-600"
+                        )} />
+                      </div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          key="content"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <p className="px-6 pb-6 text-slate-600 leading-relaxed">{faq.a}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           </div>
         </section>
 
         {/* CTA Section */}
-        <motion.section 
+        <motion.section
           className="relative py-24 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 overflow-hidden"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -467,7 +506,7 @@ export default function PricingPage() {
         >
           {/* Background Elements */}
           <div className="absolute inset-0">
-            <motion.div 
+            <motion.div
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 8, repeat: Infinity }}
