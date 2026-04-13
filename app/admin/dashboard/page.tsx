@@ -1,10 +1,113 @@
-import { requireAdmin } from '@/lib/auth-server';
+'use client';
+
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, Typography, Badge, Button } from '@/components/ui';
 import Link from 'next/link';
+import { formatRelativeTime } from '@/lib/utils';
+import {
+  Users, FolderOpen, AlertTriangle, DollarSign, TrendingUp, TrendingDown,
+  Shield, Activity, ArrowRight, CreditCard, BarChart3, Scale, Settings,
+  Sparkles, ShieldCheck, MessageSquare
+} from 'lucide-react';
 
-export default async function AdminDashboardPage() {
-  const user = await requireAdmin();
+interface DashboardStats {
+  totalUsers: number;
+  totalClients: number;
+  totalDevelopers: number;
+  totalAdmins: number;
+  userGrowth: string;
+  usersThisMonth: number;
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  openProjects: number;
+  projectGrowth: string;
+  projectsThisMonth: number;
+  openDisputes: number;
+  totalDisputes: number;
+  totalRevenue: number;
+  revenueGrowth: string;
+  revenueThisMonth: number;
+  pendingVerifications: number;
+}
+
+interface AdminActivityItem {
+  id: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  description: string | null;
+  createdAt: string;
+  admin: { name: string | null; email: string };
+}
+
+interface RecentUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+const GrowthBadge = ({ value }: { value: string }) => {
+  const num = parseFloat(value);
+  const isPositive = num > 0;
+  return (
+    <Badge variant={isPositive ? 'success' : num < 0 ? 'danger' : 'secondary'} size="sm" className="gap-1">
+      {isPositive ? <TrendingUp className="w-3 h-3" /> : num < 0 ? <TrendingDown className="w-3 h-3" /> : null}
+      {isPositive ? '+' : ''}{value}
+    </Badge>
+  );
+};
+
+const actionIcons: Record<string, { icon: typeof Users; color: string }> = {
+  VERIFIED_DEVELOPER: { icon: ShieldCheck, color: 'bg-green-100 text-green-600' },
+  RESOLVED_DISPUTE: { icon: Scale, color: 'bg-blue-100 text-blue-600' },
+  SUSPENDED_USER: { icon: AlertTriangle, color: 'bg-red-100 text-red-600' },
+  UPDATE_PROJECT_STATUS: { icon: FolderOpen, color: 'bg-purple-100 text-purple-600' },
+  UPDATE_HOMEPAGE_SECTION: { icon: Sparkles, color: 'bg-amber-100 text-amber-600' },
+};
+
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<AdminActivityItem[]>([]);
+  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch('/api/admin/dashboard');
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data.stats);
+          setActivities(data.recentActivities || []);
+          setRecentUsers(data.recentUsers || []);
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[600px]">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <Typography variant="p" size="lg" color="muted">Loading dashboard...</Typography>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const s = stats || {} as DashboardStats;
 
   return (
     <DashboardLayout>
@@ -16,13 +119,11 @@ export default async function AdminDashboardPage() {
               Admin Dashboard
             </Typography>
             <Typography variant="p" size="lg" color="muted">
-              Welcome back, {user.name || user.email}
+              Platform overview and key metrics
             </Typography>
           </div>
-          <Badge variant="primary" size="lg" className="px-4 py-2">
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+          <Badge variant="primary" size="lg" className="px-4 py-2 gap-2">
+            <Shield className="w-4 h-4" />
             Admin Access
           </Badge>
         </div>
@@ -31,307 +132,264 @@ export default async function AdminDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Users */}
           <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Total Users
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">Total Users</CardTitle>
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <Users className="w-5 h-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <Typography variant="h2" size="3xl" weight="bold">
-                  -
-                </Typography>
-                <Badge variant="success" size="sm">
-                  <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                  +0%
-                </Badge>
+                <Typography variant="h2" size="3xl" weight="bold">{s.totalUsers || 0}</Typography>
+                <GrowthBadge value={s.userGrowth || '0%'} />
               </div>
               <Typography variant="p" size="sm" color="muted" className="mt-1">
-                All registered users
+                {s.totalClients || 0} clients · {s.totalDevelopers || 0} devs · {s.totalAdmins || 0} admins
               </Typography>
             </CardContent>
           </Card>
 
           {/* Active Projects */}
           <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-full -mr-16 -mt-16" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Active Projects
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">Active Projects</CardTitle>
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <FolderOpen className="w-5 h-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <Typography variant="h2" size="3xl" weight="bold">
-                  -
-                </Typography>
-                <Badge variant="primary" size="sm">
-                  <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  +0%
-                </Badge>
+                <Typography variant="h2" size="3xl" weight="bold">{s.activeProjects || 0}</Typography>
+                <GrowthBadge value={s.projectGrowth || '0%'} />
               </div>
               <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Projects in progress
+                {s.totalProjects || 0} total · {s.openProjects || 0} open · {s.completedProjects || 0} done
               </Typography>
             </CardContent>
           </Card>
 
           {/* Open Disputes */}
           <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full -mr-16 -mt-16" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Open Disputes
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">Open Disputes</CardTitle>
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+                <AlertTriangle className="w-5 h-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
-                <Typography variant="h2" size="3xl" weight="bold">
-                  -
-                </Typography>
-                <Badge variant="warning" size="sm">
-                  Pending
+                <Typography variant="h2" size="3xl" weight="bold">{s.openDisputes || 0}</Typography>
+                <Badge variant={s.openDisputes > 0 ? 'warning' : 'success'} size="sm">
+                  {s.openDisputes > 0 ? 'Needs attention' : 'All clear'}
                 </Badge>
               </div>
               <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Disputes requiring review
+                {s.totalDisputes || 0} total disputes · {s.pendingVerifications || 0} pending verifications
               </Typography>
             </CardContent>
           </Card>
 
           {/* Platform Revenue */}
           <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full -mr-16 -mt-16" />
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Platform Revenue
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600">Platform Revenue</CardTitle>
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <DollarSign className="w-5 h-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2">
                 <Typography variant="h2" size="3xl" weight="bold">
-                  $-
+                  ${(s.totalRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
-                <Badge variant="success" size="sm">
-                  <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                  +0%
-                </Badge>
+                <GrowthBadge value={s.revenueGrowth || '0%'} />
               </div>
               <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Total commission earned
+                ${(s.revenueThisMonth || 0).toLocaleString()} this month (commission)
               </Typography>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions + Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Quick Actions */}
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                  <Activity className="w-5 h-5 text-primary" />
                 </div>
                 <CardTitle>Quick Actions</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
-                <Link href="/admin/users">
-                  <Button variant="outline" className="w-full justify-start">
-                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Manage Users
-                  </Button>
-                </Link>
-                <Button variant="outline" className="w-full justify-start" disabled>
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  View Projects
-                </Button>
-                <Button variant="outline" className="w-full justify-start" disabled>
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  Review Disputes
-                </Button>
-                <Button variant="outline" className="w-full justify-start" disabled>
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Settings
-                </Button>
+                {[
+                  { label: 'Manage Users', href: '/admin/users', icon: Users, color: 'from-blue-500 to-cyan-500' },
+                  { label: 'View Projects', href: '/admin/projects', icon: FolderOpen, color: 'from-emerald-500 to-green-500' },
+                  { label: 'Review Disputes', href: '/admin/disputes', icon: Scale, color: 'from-orange-500 to-red-500' },
+                  { label: 'Payments', href: '/admin/payments', icon: CreditCard, color: 'from-purple-500 to-pink-500' },
+                  { label: 'Analytics', href: '/admin/analytics', icon: BarChart3, color: 'from-indigo-500 to-blue-500' },
+                  { label: 'Settings', href: '/admin/settings', icon: Settings, color: 'from-slate-500 to-slate-700' },
+                  { label: 'Homepage CMS', href: '/admin/content', icon: Sparkles, color: 'from-amber-500 to-orange-500' },
+                  { label: 'Messages', href: '/admin/messages', icon: MessageSquare, color: 'from-teal-500 to-cyan-500' },
+                ].map((item) => (
+                  <Link key={item.href} href={item.href}>
+                    <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
+                      <div className={`w-7 h-7 rounded-md bg-gradient-to-br ${item.color} flex items-center justify-center`}>
+                        <item.icon className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <span className="text-sm font-semibold">{item.label}</span>
+                    </Button>
+                  </Link>
+                ))}
               </div>
             </CardContent>
           </Card>
 
+          {/* Recent Activity */}
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-primary" />
+                  </div>
+                  <CardTitle>Recent Activity</CardTitle>
                 </div>
-                <CardTitle>Recent Activity</CardTitle>
+                <Link href="/admin/activity">
+                  <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                    View All <ArrowRight className="w-3 h-3" />
+                  </Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
+              <div className="space-y-3">
+                {activities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <Typography variant="p" size="sm" color="muted">No recent activity</Typography>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <Typography variant="p" size="sm" weight="medium" className="mb-1">
-                      New user registered
-                    </Typography>
-                    <Typography variant="p" size="xs" color="muted">
-                      Activity log will appear here
-                    </Typography>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">
-                  <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <Typography variant="p" size="sm" weight="medium" className="mb-1">
-                      Project completed
-                    </Typography>
-                    <Typography variant="p" size="xs" color="muted">
-                      Recent activities will show here
-                    </Typography>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <Typography variant="p" size="sm" weight="medium" className="mb-1">
-                      Dispute opened
-                    </Typography>
-                    <Typography variant="p" size="xs" color="muted">
-                      Platform events tracked here
-                    </Typography>
-                  </div>
-                </div>
+                ) : (
+                  activities.slice(0, 6).map((activity) => {
+                    const config = actionIcons[activity.action] || { icon: Activity, color: 'bg-slate-100 text-slate-600' };
+                    const Icon = config.icon;
+                    return (
+                      <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <div className={`w-8 h-8 rounded-full ${config.color} flex items-center justify-center flex-shrink-0`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Typography variant="p" size="sm" weight="medium" className="mb-0.5 truncate">
+                            {activity.description || activity.action.replace(/_/g, ' ')}
+                          </Typography>
+                          <Typography variant="p" size="xs" color="muted">
+                            by {activity.admin.name || activity.admin.email} · {formatRelativeTime(activity.createdAt)}
+                          </Typography>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* System Status */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <CardTitle>System Status</CardTitle>
-              </div>
-              <Badge variant="success" size="sm">
-                <span className="relative flex h-2 w-2 mr-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                All Systems Operational
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+        {/* Recent Users + System Status */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Users */}
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                    </svg>
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                    <Users className="w-5 h-5 text-white" />
                   </div>
-                  <div>
-                    <Typography variant="p" size="sm" weight="medium">Database</Typography>
-                    <Typography variant="p" size="xs" color="muted">Operational</Typography>
-                  </div>
+                  <CardTitle>Recent Signups</CardTitle>
                 </div>
-                <Badge variant="success" size="sm">✓</Badge>
+                <Link href="/admin/users">
+                  <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                    View All <ArrowRight className="w-3 h-3" />
+                  </Button>
+                </Link>
               </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentUsers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <Typography variant="p" size="sm" color="muted">No recent signups</Typography>
+                  </div>
+                ) : (
+                  recentUsers.map((user) => (
+                    <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold">
+                        {(user.name || user.email)[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Typography variant="p" size="sm" weight="medium" className="truncate">{user.name || user.email}</Typography>
+                        <Typography variant="p" size="xs" color="muted">{formatRelativeTime(user.createdAt)}</Typography>
+                      </div>
+                      <Badge variant={user.role === 'DEVELOPER' ? 'primary' : user.role === 'CLIENT' ? 'secondary' : 'warning'} size="sm">
+                        {user.role}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
+          {/* System Status */}
+          <Card className="hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                    </svg>
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-primary" />
                   </div>
-                  <div>
-                    <Typography variant="p" size="sm" weight="medium">API</Typography>
-                    <Typography variant="p" size="xs" color="muted">Operational</Typography>
-                  </div>
+                  <CardTitle>System Status</CardTitle>
                 </div>
-                <Badge variant="success" size="sm">✓</Badge>
+                <Badge variant="success" size="sm" className="gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                  All Operational
+                </Badge>
               </div>
-
-              <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  { name: 'Database', desc: 'PostgreSQL', icon: '🗂️' },
+                  { name: 'API', desc: 'Next.js API Routes', icon: '⚡' },
+                  { name: 'Payments', desc: 'Stripe Connect', icon: '💳' },
+                  { name: 'Storage', desc: 'MinIO Object Storage', icon: '📦' },
+                ].map((service) => (
+                  <div key={service.name} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{service.icon}</span>
+                      <div>
+                        <Typography variant="p" size="sm" weight="medium">{service.name}</Typography>
+                        <Typography variant="p" size="xs" color="muted">{service.desc}</Typography>
+                      </div>
+                    </div>
+                    <Badge variant="success" size="sm">✓</Badge>
                   </div>
-                  <div>
-                    <Typography variant="p" size="sm" weight="medium">Payments</Typography>
-                    <Typography variant="p" size="xs" color="muted">Operational</Typography>
-                  </div>
-                </div>
-                <Badge variant="success" size="sm">✓</Badge>
+                ))}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   );

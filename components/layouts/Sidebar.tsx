@@ -21,6 +21,11 @@ import {
   Scale,
   Settings,
   HelpCircle,
+  BarChart3,
+  Layout,
+  Menu,
+  Footprints,
+  Activity,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -111,14 +116,30 @@ const ADMIN_NAV: NavGroup[] = [
     items: [
       { name: 'Users', href: '/admin/users', icon: <Users className="w-4 h-4" /> },
       { name: 'Projects', href: '/admin/projects', icon: <FolderOpen className="w-4 h-4" /> },
-      { name: 'Messages', href: '/admin/messages', icon: <MessageSquare className="w-4 h-4" /> },
+      { name: 'Payments', href: '/admin/payments', icon: <CreditCard className="w-4 h-4" /> },
       { name: 'Disputes', href: '/admin/disputes', icon: <Scale className="w-4 h-4" /> },
+      { name: 'Messages', href: '/admin/messages', icon: <MessageSquare className="w-4 h-4" /> },
+    ],
+  },
+  {
+    label: 'Analytics',
+    items: [
+      { name: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="w-4 h-4" /> },
+      { name: 'Activity Log', href: '/admin/activity', icon: <Activity className="w-4 h-4" /> },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { name: 'Homepage', href: '/admin/content', icon: <Layout className="w-4 h-4" /> },
+      { name: 'Navigation', href: '/admin/content/nav', icon: <Menu className="w-4 h-4" /> },
+      { name: 'Footer', href: '/admin/content/footer', icon: <Footprints className="w-4 h-4" /> },
+      { name: 'Hero Assets', href: '/admin/hero', icon: <Sparkles className="w-4 h-4" /> },
     ],
   },
   {
     label: 'Platform',
     items: [
-      { name: 'Hero Content', href: '/admin/hero', icon: <Sparkles className="w-4 h-4" /> },
       { name: 'Verification', href: '/admin/verification', icon: <ShieldCheck className="w-4 h-4" /> },
       { name: 'Settings', href: '/admin/settings', icon: <Settings className="w-4 h-4" /> },
     ],

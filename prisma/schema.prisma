@@ -484,8 +484,8 @@ model Dispute {
   
   // Dispute details
   status        DisputeStatus @default(OPEN)
-  
-  // Evidence from both parties
+  adminNotes    String?       @db.Text
+  reason        String?       @db.Text // Original reason for dispute opening
   clientStatement   String?  @db.Text
   clientEvidence    String[] // Array of evidence URLs/links
   
@@ -600,5 +600,58 @@ model FloatingAsset {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// HOMEPAGE CMS MODELS
+// ============================================
+
+model HomepageSection {
+  id          String   @id @default(cuid())
+  sectionKey  String   @unique  // "features", "howItWorks", "stats", "devSection", "clientSection", "finalCta"
+  title       String?
+  subtitle    String?
+  badgeText   String?
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  metadata    Json?    // Additional section-specific data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       HomepageSectionItem[]
+}
+
+model HomepageSectionItem {
+  id          String   @id @default(cuid())
+  sectionId   String
+  section     HomepageSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  iconName    String?  // Lucide icon name
+  color       String?  // CSS color class
+  value       String?  // For stats (e.g., "500+")
+  href        String?  // For links
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sectionId])
+}
+
+model NavigationItem {
+  id          String   @id @default(cuid())
+  label       String
+  href        String
+  location    String   // "header" | "footer"
+  group       String?  // For footer: "platform", "company", "legal"
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  isExternal  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([location])
 }
 

@@ -1,226 +1,254 @@
-import { requireAdmin } from '@/lib/auth-server';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, Typography, Badge } from '@/components/ui';
-import Link from 'next/link';
+'use client';
 
-export default async function AdminProjectsPage() {
-  const user = await requireAdmin();
+import { useState, useEffect } from 'react';
+import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle, Typography, Badge, Button, Input, Select } from '@/components/ui';
+import Link from 'next/link';
+import { cn, formatRelativeTime } from '@/lib/utils';
+import { FolderOpen, Search, Eye, AlertTriangle, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react';
+
+interface Project {
+  id: string;
+  title: string;
+  budget: string;
+  deadline: string;
+  skillType: string;
+  status: string;
+  createdAt: string;
+  client: { id: string; name: string | null; email: string };
+  milestoneProgress: number;
+  totalMilestones: number;
+  completedMilestones: number;
+  totalPaid: number;
+  proposalCount: number;
+  disputeCount: number;
+  selectedDeveloperId: string | null;
+}
+
+const statusConfig: Record<string, { label: string; variant: 'primary' | 'secondary' | 'success' | 'warning' | 'danger'; icon: typeof Clock }> = {
+  DRAFT: { label: 'Draft', variant: 'secondary', icon: Clock },
+  OPEN: { label: 'Open', variant: 'primary', icon: FolderOpen },
+  IN_PROGRESS: { label: 'In Progress', variant: 'warning', icon: Clock },
+  COMPLETED: { label: 'Completed', variant: 'success', icon: CheckCircle },
+  CANCELLED: { label: 'Cancelled', variant: 'danger', icon: XCircle },
+};
+
+export default function AdminProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, completed: 0, totalValue: 0 });
+
+  const fetchProjects = async (page = 1) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (statusFilter) params.set('status', statusFilter);
+      params.set('page', page.toString());
+      params.set('limit', '20');
+
+      const res = await fetch(`/api/admin/projects?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.projects || []);
+        setPagination(data.pagination);
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchProjects(); }, [search, statusFilter]);
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Typography variant="h1" size="3xl" weight="bold" className="mb-2">
-              Projects Management
-            </Typography>
-            <Typography variant="p" size="lg" color="muted">
-              Monitor and manage all platform projects
-            </Typography>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 dark:from-blue-950/30 dark:via-cyan-950/30 dark:to-teal-950/30 border border-blue-100 dark:border-blue-900/50 p-8">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl" />
+          <div className="relative flex items-start gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg">
+              <FolderOpen className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <Typography variant="h1" size="3xl" weight="bold" className="mb-2">Projects Management</Typography>
+              <Typography variant="p" size="lg" color="muted">Monitor and manage all platform projects</Typography>
+            </div>
           </div>
-          <Badge variant="primary" size="lg" className="px-4 py-2">
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            Admin Access
-          </Badge>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Total Projects */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Total Projects
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold">-</Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                All platform projects
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Active Projects */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Active Projects
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold">-</Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Currently in progress
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Completed */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Completed
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold">-</Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Successfully delivered
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Total Value */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Total Value
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold">$-</Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Combined project value
-              </Typography>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Coming Soon Card */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <CardTitle>Projects List</CardTitle>
-                <Typography variant="p" size="sm" color="muted">
-                  View and manage all projects
-                </Typography>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-16">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </div>
-              <Typography variant="h3" size="2xl" weight="bold" className="mb-3">
-                Projects Management Coming Soon
-              </Typography>
-              <Typography variant="p" color="muted" className="max-w-md mx-auto">
-                Advanced project management features including filtering, search, and detailed analytics will be available here.
-              </Typography>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <CardTitle>Quick Actions</CardTitle>
-                <Typography variant="p" size="sm" color="muted">
-                  Common administrative tasks
-                </Typography>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link href="/admin/users">
-                <Card className="hover:shadow-lg hover:border-blue-500 transition-all duration-200 cursor-pointer">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <Typography variant="p" size="sm" weight="bold">Manage Users</Typography>
-                        <Typography variant="p" size="xs" color="muted">View all users</Typography>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/admin/dashboard">
-                <Card className="hover:shadow-lg hover:border-emerald-500 transition-all duration-200 cursor-pointer">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <Typography variant="p" size="sm" weight="bold">Dashboard</Typography>
-                        <Typography variant="p" size="xs" color="muted">View analytics</Typography>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Card className="opacity-50 cursor-not-allowed">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
-                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <Typography variant="p" size="sm" weight="bold">Disputes</Typography>
-                      <Typography variant="p" size="xs" color="muted">Coming soon</Typography>
-                    </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Projects', value: stats.total, icon: FolderOpen, color: 'from-blue-500 to-cyan-500' },
+            { label: 'Active', value: stats.active, icon: Clock, color: 'from-amber-500 to-orange-500' },
+            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'from-green-500 to-emerald-500' },
+            { label: 'Total Value', value: `$${stats.totalValue.toLocaleString()}`, icon: DollarSign, color: 'from-purple-500 to-pink-500' },
+          ].map((s) => (
+            <Card key={s.label} className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>
+                    <s.icon className="w-5 h-5 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <Typography variant="p" size="xs" color="muted">{s.label}</Typography>
+                    <Typography variant="h3" size="xl" weight="bold">{s.value}</Typography>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search projects by title or client..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select
+                label=""
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'DRAFT', label: 'Draft' },
+                  { value: 'OPEN', label: 'Open' },
+                  { value: 'IN_PROGRESS', label: 'In Progress' },
+                  { value: 'COMPLETED', label: 'Completed' },
+                  { value: 'CANCELLED', label: 'Cancelled' },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>
+
+        {/* Projects Table */}
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : projects.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <Typography variant="h3" size="xl" weight="bold" className="mb-2">No projects found</Typography>
+              <Typography variant="p" color="muted">Try adjusting your filters</Typography>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-0 px-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-slate-200">
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">Project</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase">Client</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase">Status</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase">Budget</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase">Progress</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase">Created</th>
+                      <th className="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {projects.map((p) => {
+                      const sc = statusConfig[p.status] || statusConfig.DRAFT;
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div>
+                              <Typography variant="p" size="sm" weight="medium" className="mb-0.5">{p.title}</Typography>
+                              <div className="flex gap-2">
+                                <Badge variant="secondary" size="sm">{p.skillType}</Badge>
+                                {p.disputeCount > 0 && (
+                                  <Badge variant="danger" size="sm" className="gap-1">
+                                    <AlertTriangle className="w-3 h-3" />{p.disputeCount}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <Typography variant="p" size="sm">{p.client.name || p.client.email}</Typography>
+                          </td>
+                          <td className="px-4 py-4">
+                            <Badge variant={sc.variant} size="sm" className="gap-1">
+                              <sc.icon className="w-3 h-3" />{sc.label}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-4">
+                            <Typography variant="p" size="sm" weight="medium">
+                              ${Number(p.budget).toLocaleString()}
+                            </Typography>
+                            {p.totalPaid > 0 && (
+                              <Typography variant="p" size="xs" color="muted">
+                                ${p.totalPaid.toLocaleString()} paid
+                              </Typography>
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all"
+                                  style={{ width: `${p.milestoneProgress}%` }}
+                                />
+                              </div>
+                              <Typography variant="p" size="xs" color="muted">
+                                {p.completedMilestones}/{p.totalMilestones}
+                              </Typography>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <Typography variant="p" size="xs" color="muted">
+                              {formatRelativeTime(p.createdAt)}
+                            </Typography>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <Link href={`/admin/projects/${p.id}`}>
+                              <Button variant="primary" size="sm" className="gap-1">
+                                <Eye className="w-3.5 h-3.5" />View
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <Typography variant="p" size="sm" color="muted">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+            </Typography>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => fetchProjects(pagination.page - 1)} disabled={pagination.page === 1}>Previous</Button>
+              <Button variant="outline" size="sm" onClick={() => fetchProjects(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages}>Next</Button>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

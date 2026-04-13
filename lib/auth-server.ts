@@ -35,3 +35,14 @@ export async function requireDeveloper() {
   return await requireRole('DEVELOPER');
 }
 
+export async function requireAdminAuth() {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect('/admin/login');
+  }
+  if (user.role !== 'ADMIN') {
+    redirect('/unauthorized');
+  }
+  return user;
+}
+

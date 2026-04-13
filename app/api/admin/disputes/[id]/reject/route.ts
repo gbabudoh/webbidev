@@ -28,7 +28,7 @@ export async function POST(
       where: { id },
       data: {
         status: 'CLOSED',
-        reviewerDecision: reason,
+        reviewerDecision: reason as string,
         reviewerId: session.user.id,
         reviewerDecisionAt: new Date(),
         closedAt: new Date(),

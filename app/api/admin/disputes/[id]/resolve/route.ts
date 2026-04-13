@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/db';
+import { DisputeStatus } from '@prisma/client';
 
 export async function POST(
   request: NextRequest,
@@ -27,12 +28,12 @@ export async function POST(
     const dispute = await prisma.dispute.update({
       where: { id },
       data: {
-        status: favorOf === 'CLIENT' ? 'RESOLVED_CLIENT_WINS' : 'RESOLVED_DEVELOPER_WINS',
-        reviewerDecision: resolution,
+        status: (favorOf === 'CLIENT' ? DisputeStatus.RESOLVED_CLIENT_WINS : DisputeStatus.RESOLVED_DEVELOPER_WINS),
+        reviewerDecision: resolution as string,
         reviewerId: session.user.id,
         reviewerDecisionAt: new Date(),
         resolvedAt: new Date(),
-        resolvedInFavorOf: favorOf || 'CLIENT',
+        resolvedInFavorOf: (favorOf || 'CLIENT') as string,
       },
       include: {
         project: true,
