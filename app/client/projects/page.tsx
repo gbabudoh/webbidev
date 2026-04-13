@@ -3,8 +3,28 @@
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Input, Select, Button, Typography, Badge } from '@/components/ui';
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, formatRelativeTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import {
+  Search,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  Target,
+  Users,
+  Eye,
+  Pencil,
+  Plus,
+  AlertCircle,
+  ChevronDown,
+  X,
+  CheckCircle,
+  Clock,
+  Zap,
+  Ban,
+  FileText,
+} from 'lucide-react';
 
 interface Project {
   id: string;
@@ -15,425 +35,474 @@ interface Project {
   skillType: string;
   status: string;
   createdAt: string;
-  updatedAt: string;
-  milestones?: Array<{
-    id: string;
-    title: string;
-    status: string;
-    paymentPercentage: number;
-    order: number;
-  }>;
-  proposals?: Array<{
-    id: string;
-    status: string;
-    developer?: {
-      user?: {
-        name: string | null;
-        email: string;
-      };
-    };
-  }>;
-  _count?: {
-    proposals: number;
-  };
+  milestones?: Array<{ id: string; title: string; status: string; paymentPercentage: number; order: number }>;
+  proposals?: Array<{ id: string; status: string; developer?: { user?: { name: string | null; email: string } } }>;
+  _count?: { proposals: number };
 }
 
-function ProjectsPageContent() {
-  const router = useRouter();
+const STATUS_OPTIONS = [
+  { value: '',            label: 'All Status' },
+  { value: 'DRAFT',       label: 'Draft' },
+  { value: 'OPEN',        label: 'Open' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED',   label: 'Completed' },
+  { value: 'CANCELLED',   label: 'Cancelled' },
+];
+
+const SKILL_OPTIONS = [
+  { value: '',           label: 'All Types' },
+  { value: 'Frontend',   label: 'Frontend' },
+  { value: 'Backend',    label: 'Backend' },
+  { value: 'Fullstack',  label: 'Fullstack' },
+  { value: 'UI/UX',      label: 'UI/UX Design' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'newest',      label: 'Newest First' },
+  { value: 'oldest',      label: 'Oldest First' },
+  { value: 'budget-high', label: 'Budget: High to Low' },
+  { value: 'budget-low',  label: 'Budget: Low to High' },
+  { value: 'deadline',    label: 'Deadline: Soonest' },
+];
+
+const STATUS_STYLE: Record<string, { label: string; className: string; icon: React.ElementType }> = {
+  DRAFT:       { label: 'Draft',       className: 'bg-slate-100 text-slate-500',   icon: FileText   },
+  OPEN:        { label: 'Open',        className: 'bg-amber-50 text-amber-700',    icon: Zap        },
+  IN_PROGRESS: { label: 'In Progress', className: 'bg-blue-50 text-blue-600',      icon: Clock      },
+  COMPLETED:   { label: 'Completed',   className: 'bg-emerald-50 text-emerald-700',icon: CheckCircle},
+  CANCELLED:   { label: 'Cancelled',   className: 'bg-red-50 text-red-500',        icon: Ban        },
+};
+
+function CardSkeleton() {
+  return (
+    <div className="bg-white rounded-[2rem] border border-slate-100 p-7 animate-pulse">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="w-12 h-12 rounded-2xl bg-slate-100 shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-slate-100 rounded-lg w-3/5" />
+          <div className="h-3 bg-slate-100 rounded-lg w-4/5" />
+        </div>
+        <div className="w-24 h-7 rounded-xl bg-slate-100" />
+      </div>
+      <div className="flex gap-4 mb-5">
+        {[1,2,3,4].map(i => <div key={i} className="h-10 flex-1 bg-slate-100 rounded-xl" />)}
+      </div>
+      <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+        <div className="h-3 bg-slate-100 rounded-lg w-28" />
+        <div className="flex gap-2">
+          <div className="h-9 w-28 bg-slate-100 rounded-xl" />
+          <div className="h-9 w-16 bg-slate-100 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeadlineBadge({ deadline }: { deadline: string }) {
+  const date     = new Date(deadline);
+  const diffDays = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const label    = formatDate(deadline);
+  if (diffDays < 0)  return <span className="text-xs font-bold text-red-500">{label} · Overdue</span>;
+  if (diffDays <= 7) return <span className="text-xs font-bold text-amber-600">{label} · {diffDays}d left</span>;
+  return <span className="text-xs font-semibold text-slate-700">{label}</span>;
+}
+
+function ProjectsContent() {
+  const router       = useRouter();
   const searchParams = useSearchParams();
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState<string | null>(null);
 
-  const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [status, setStatus] = useState(searchParams.get('status') || '');
+  const [search,    setSearch]    = useState(searchParams.get('search')    || '');
+  const [status,    setStatus]    = useState(searchParams.get('status')    || '');
   const [skillType, setSkillType] = useState(searchParams.get('skillType') || '');
-
-  const statusOptions = [
-    { value: '', label: 'All Status' },
-    { value: 'OPEN', label: 'Open' },
-    { value: 'IN_PROGRESS', label: 'In Progress' },
-    { value: 'COMPLETED', label: 'Completed' },
-    { value: 'CANCELLED', label: 'Cancelled' },
-  ];
-
-  const skillTypeOptions = [
-    { value: '', label: 'All Types' },
-    { value: 'Frontend', label: 'Frontend Development' },
-    { value: 'Backend', label: 'Backend Development' },
-    { value: 'Fullstack', label: 'Fullstack Development' },
-    { value: 'UI/UX', label: 'UI/UX Design' },
-  ];
+  const [sortBy,    setSortBy]    = useState(searchParams.get('sortBy')    || 'newest');
 
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
       const params = new URLSearchParams();
-      if (status) params.set('status', status);
+      if (status)    params.set('status',    status);
       if (skillType) params.set('skillType', skillType);
 
-      const response = await fetch(`/api/project?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch projects');
-
-      const data = await response.json();
-      let fetchedProjects = data.projects || [];
+      const res = await fetch(`/api/project?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch projects');
+      const data = await res.json();
+      let list: Project[] = data.projects || [];
 
       if (search) {
-        const searchLower = search.toLowerCase();
-        fetchedProjects = fetchedProjects.filter(
-          (project: Project) =>
-            project.title.toLowerCase().includes(searchLower) ||
-            project.description.toLowerCase().includes(searchLower)
+        const q = search.toLowerCase();
+        list = list.filter(p =>
+          p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
         );
       }
 
-      setProjects(fetchedProjects);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load projects';
-      setError(errorMessage);
+      list.sort((a, b) => {
+        switch (sortBy) {
+          case 'oldest':      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case 'budget-high': return b.budget - a.budget;
+          case 'budget-low':  return a.budget - b.budget;
+          case 'deadline':    return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+          default:            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+      });
+
+      setProjects(list);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
       setProjects([]);
     } finally {
       setLoading(false);
     }
-  }, [search, status, skillType]);
+  }, [search, status, skillType, sortBy]);
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (status) params.set('status', status);
+    if (search)    params.set('search',    search);
+    if (status)    params.set('status',    status);
     if (skillType) params.set('skillType', skillType);
+    if (sortBy)    params.set('sortBy',    sortBy);
     router.replace(`/client/projects?${params.toString()}`);
-  }, [search, status, skillType, router]);
+  }, [search, status, skillType, sortBy, router]);
 
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'OPEN': return 'secondary';
-      case 'IN_PROGRESS': return 'primary';
-      case 'COMPLETED': return 'success';
-      case 'CANCELLED': return 'danger';
-      default: return 'secondary';
-    }
+  const hasFilters = !!(search || status || skillType);
+
+  const clearFilters = () => {
+    setSearch(''); setStatus(''); setSkillType(''); setSortBy('newest');
   };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'OPEN':
-        return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-      case 'IN_PROGRESS':
-        return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>;
-      case 'COMPLETED':
-        return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-      case 'CANCELLED':
-        return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-      default:
-        return null;
-    }
-  };
-
-  if (loading) {
-    return (
-      <>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <Typography variant="p" size="lg" color="muted">Loading projects...</Typography>
-          </div>
-        </div>
-      </>
-    );
-  }
 
   return (
-    <>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Typography variant="h1" size="3xl" weight="bold" className="mb-2">
-              My Projects
-            </Typography>
-            <Typography variant="p" size="lg" color="muted">
-              Manage your projects and track progress
-            </Typography>
-          </div>
-          <Link href="/client/post">
-            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Post New Project
-            </Button>
-          </Link>
+    <div className="space-y-8 pb-12">
+
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#C0C0C0] via-[#DCDCDC] to-[#F0F0F0] p-8 lg:p-12 shadow-2xl shadow-slate-400/20 border border-white/40"
+      >
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-400/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
         </div>
 
-        {/* Filters */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <Input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select
-                label="Status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                options={statusOptions}
-              />
-              <Select
-                label="Skill Type"
-                value={skillType}
-                onChange={(e) => setSkillType(e.target.value)}
-                options={skillTypeOptions}
-              />
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-blue-100 shadow-sm mb-6">
+              <Briefcase className="w-4 h-4 text-blue-500" />
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">My Projects</span>
             </div>
-          </CardContent>
-        </Card>
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-3 tracking-tight leading-tight">
+              Your Projects
+            </h1>
+            <p className="text-lg text-slate-600 font-medium">
+              Manage, track, and review all your posted projects.
+            </p>
+          </div>
 
-        {/* Error Message */}
-        {error && (
-          <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <Typography variant="p" className="text-red-600 dark:text-red-400">{error}</Typography>
+          {!loading && (
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-6 shadow-xl shrink-0 text-center"
+              >
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                <p className="text-4xl font-black text-slate-900 leading-none">{projects.length}</p>
+                <p className="text-sm text-slate-500 font-medium mt-1">
+                  {projects.length === 1 ? 'project' : 'projects'}
+                </p>
+              </motion.div>
+              <Link href="/client/post"
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl px-6 py-3.5 text-sm font-bold shadow-xl transition-all hover:-translate-y-0.5">
+                <Plus className="w-4 h-4" /> Post Project
+              </Link>
+            </div>
+          )}
+        </div>
+      </motion.header>
+
+      {/* Filter Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5"
+      >
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by title or description..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 text-sm font-medium text-slate-900 placeholder:text-slate-400 border-none outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center shrink-0">
+            {[
+              { value: status,    onChange: setStatus,    options: STATUS_OPTIONS },
+              { value: skillType, onChange: setSkillType, options: SKILL_OPTIONS },
+              { value: sortBy,    onChange: setSortBy,    options: SORT_OPTIONS },
+            ].map((sel, i) => (
+              <div key={i} className="relative">
+                <select
+                  value={sel.value}
+                  onChange={e => sel.onChange(e.target.value)}
+                  className="appearance-none pl-4 pr-9 py-3 rounded-xl bg-slate-50 text-sm font-semibold text-slate-700 border-none outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer transition-all"
+                >
+                  {sel.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               </div>
-            </CardContent>
-          </Card>
+            ))}
+
+            {hasFilters && (
+              <button onClick={clearFilters}
+                className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all">
+                <X className="w-3.5 h-3.5" /> Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {hasFilters && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest self-center mr-1">Filters:</span>
+            {search && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-xs font-bold">
+                &ldquo;{search}&rdquo; <button onClick={() => setSearch('')}><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {status && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold">
+                {STATUS_OPTIONS.find(o => o.value === status)?.label}
+                <button onClick={() => setStatus('')}><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {skillType && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 text-xs font-bold">
+                {skillType} <button onClick={() => setSkillType('')}><X className="w-3 h-3" /></button>
+              </span>
+            )}
+          </div>
         )}
+      </motion.div>
 
-        {/* Projects List */}
-        {projects.length === 0 ? (
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="pt-6">
-              <div className="text-center py-16">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <Typography variant="h3" size="2xl" weight="bold" className="mb-3">
-                  No projects found
-                </Typography>
-                <Typography variant="p" color="muted" className="mb-8 max-w-md mx-auto">
-                  {search || status || skillType
-                    ? 'Try adjusting your filters to see more results'
-                    : 'You haven\'t posted any projects yet. Get started by posting your first project!'}
-                </Typography>
-                {!search && !status && !skillType && (
-                  <Link href="/client/post">
-                    <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0">
-                      <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Post Your First Project
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {projects.map((project) => {
-              const totalMilestones = project.milestones?.length || 0;
-              const completedMilestones = project.milestones?.filter((m) => m.status === 'COMPLETED').length || 0;
-              const proposalCount = project._count?.proposals || project.proposals?.length || 0;
-              const acceptedProposal = project.proposals?.find((p) => p.status === 'ACCEPTED');
-              const progress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 p-5 rounded-2xl bg-red-50 border border-red-200">
+          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+          </div>
+          <p className="text-sm font-medium text-red-600">{error}</p>
+        </div>
+      )}
+
+      {/* Skeletons */}
+      {loading && (
+        <div className="space-y-5">
+          {[1,2,3].map(i => <CardSkeleton key={i} />)}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && projects.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-24 px-8 bg-white rounded-[2.5rem] border border-slate-100"
+        >
+          <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto mb-6">
+            <Briefcase className="w-10 h-10 text-slate-400" />
+          </div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">No projects found</h3>
+          <p className="text-slate-500 font-medium text-sm mb-6 max-w-md mx-auto">
+            {hasFilters
+              ? 'Try adjusting your filters or clearing your search.'
+              : "You haven't posted any projects yet. Post your first project to get started."}
+          </p>
+          {hasFilters ? (
+            <button onClick={clearFilters}
+              className="px-6 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
+              Clear Filters
+            </button>
+          ) : (
+            <Link href="/client/post"
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
+              <Plus className="w-4 h-4" /> Post Your First Project
+            </Link>
+          )}
+        </motion.div>
+      )}
+
+      {/* Project cards */}
+      {!loading && projects.length > 0 && (
+        <AnimatePresence>
+          <div className="space-y-5">
+            {projects.map((project, i) => {
+              const totalMs     = project.milestones?.length ?? 0;
+              const doneMs      = project.milestones?.filter(m => m.status === 'COMPLETED' || m.status === 'APPROVED').length ?? 0;
+              const progress    = totalMs ? Math.round((doneMs / totalMs) * 100) : 0;
+              const proposalCnt = project._count?.proposals ?? project.proposals?.length ?? 0;
+              const accepted    = project.proposals?.find(p => p.status === 'ACCEPTED');
+              const st          = STATUS_STYLE[project.status] ?? STATUS_STYLE['DRAFT'];
+              const StIcon      = st.icon;
 
               return (
-                <Card key={project.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <CardTitle className="text-2xl">{project.title}</CardTitle>
-                        </div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge variant="secondary" size="sm" className="px-3 py-1">
-                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                            </svg>
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  className="group bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                >
+                  <div className="p-7">
+
+                    {/* Card header */}
+                    <div className="flex items-start gap-4 mb-5">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 font-black text-xl shrink-0">
+                        {project.title.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="text-lg font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">
+                            {project.title}
+                          </h3>
+                          <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wide">
                             {project.skillType}
-                          </Badge>
-                          <Badge variant={getStatusBadgeVariant(project.status)} size="sm" className="px-3 py-1">
-                            {getStatusIcon(project.status)}
-                            <span className="ml-1">{project.status.replace('_', ' ')}</span>
-                          </Badge>
-                          {proposalCount > 0 && (
-                            <Badge variant="primary" size="sm" className="px-3 py-1">
-                              <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                              {proposalCount} {proposalCount === 1 ? 'Proposal' : 'Proposals'}
-                            </Badge>
+                          </span>
+                          <span className={cn('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide', st.className)}>
+                            <StIcon className="w-3 h-3" />{st.label}
+                          </span>
+                          {proposalCnt > 0 && (
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-[10px] font-black uppercase tracking-wide">
+                              <Users className="w-3 h-3" />{proposalCnt} {proposalCnt === 1 ? 'Proposal' : 'Proposals'}
+                            </span>
                           )}
                         </div>
-                        <CardDescription className="text-base line-clamp-2">
+                        <p className="text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
                           {project.description}
-                        </CardDescription>
+                        </p>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {/* Progress Bar */}
-                      {totalMilestones > 0 && (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <Typography variant="p" size="sm" color="muted">
-                              Project Progress
-                            </Typography>
-                            <Typography variant="p" size="sm" weight="bold">
-                              {Math.round(progress)}%
-                            </Typography>
-                          </div>
-                          <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500"
-                              style={{ width: `${progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
 
-                      {/* Project Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <Typography variant="p" size="xs" color="muted">Budget</Typography>
-                          </div>
-                          <Typography variant="h3" size="xl" weight="bold">
-                            {formatCurrency(project.budget)}
-                          </Typography>
+                    {/* Progress bar */}
+                    {totalMs > 0 && (
+                      <div className="mb-5 space-y-1.5">
+                        <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
+                          <span>Milestones <span className="text-slate-600 normal-case tracking-normal font-semibold">{doneMs} of {totalMs} done</span></span>
+                          <span className="text-slate-900">{progress}%</span>
                         </div>
-
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <Typography variant="p" size="xs" color="muted">Deadline</Typography>
-                          </div>
-                          <Typography variant="p" size="sm" weight="bold">
-                            {formatDate(project.deadline)}
-                          </Typography>
-                        </div>
-
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                            </svg>
-                            <Typography variant="p" size="xs" color="muted">Milestones</Typography>
-                          </div>
-                          <Typography variant="p" size="sm" weight="bold">
-                            {completedMilestones}/{totalMilestones}
-                          </Typography>
-                        </div>
-
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <Typography variant="p" size="xs" color="muted">Posted</Typography>
-                          </div>
-                          <Typography variant="p" size="sm" weight="bold">
-                            {formatRelativeTime(project.createdAt)}
-                          </Typography>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ duration: 1.2, ease: 'easeOut' }}
+                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
+                          />
                         </div>
                       </div>
+                    )}
 
-                      {/* Developer Info */}
-                      {acceptedProposal && acceptedProposal.developer && (
-                        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
-                              {(acceptedProposal.developer.user?.name || acceptedProposal.developer.user?.email || 'D')[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <Typography variant="p" size="xs" color="muted">Working with</Typography>
-                              <Typography variant="p" size="sm" weight="bold">
-                                {acceptedProposal.developer.user?.name || acceptedProposal.developer.user?.email || 'Developer'}
-                              </Typography>
-                            </div>
-                          </div>
+                    {/* Stat row */}
+                    <div className="flex flex-wrap gap-x-8 gap-y-3 mb-5 px-1">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Budget</p>
+                          <p className="text-sm font-black text-slate-900">{formatCurrency(project.budget)}</p>
                         </div>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Deadline</p>
+                          <DeadlineBadge deadline={project.deadline} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Milestones</p>
+                          <p className="text-sm font-black text-slate-900">{totalMs}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                        <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Posted</p>
+                          <p className="text-sm font-semibold text-slate-600">{formatRelativeTime(project.createdAt)}</p>
+                        </div>
+                      </div>
+                    </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <Link href={`/client/projects/${project.id}`} className="flex-1">
-                          <Button variant="primary" className="w-full">
-                            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            View Details
-                          </Button>
+                    {/* Accepted developer */}
+                    {accepted?.developer?.user && (
+                      <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-100">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-black text-sm shrink-0">
+                          {(accepted.developer.user.name || accepted.developer.user.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Working with</p>
+                          <p className="text-sm font-black text-slate-900">
+                            {accepted.developer.user.name || accepted.developer.user.email}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-5 border-t border-slate-50">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {project.skillType}
+                      </p>
+                      <div className="flex gap-2.5">
+                        <Link href={`/client/projects/${project.id}`}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors">
+                          <Eye className="w-3.5 h-3.5" /> View Details
                         </Link>
                         {project.status === 'OPEN' && (
-                          <Link href={`/client/projects/${project.id}/edit`}>
-                            <Button variant="outline">
-                              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Edit
-                            </Button>
+                          <Link href={`/client/projects/${project.id}/edit`}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors">
+                            <Pencil className="w-3.5 h-3.5" /> Edit
                           </Link>
                         )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </motion.div>
               );
             })}
           </div>
-        )}
-      </div>
-    </>
+        </AnimatePresence>
+      )}
+    </div>
   );
 }
 
 export default function ClientProjectsPage() {
   return (
     <Suspense fallback={
-      <>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <Typography variant="p" size="lg">Loading...</Typography>
-          </div>
-        </div>
-      </>
+      <div className="space-y-5 pt-4">
+        {[1,2,3].map(i => <CardSkeleton key={i} />)}
+      </div>
     }>
-      <ProjectsPageContent />
+      <ProjectsContent />
     </Suspense>
   );
 }

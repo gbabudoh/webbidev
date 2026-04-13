@@ -1,9 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, Typography, Badge, Button } from '@/components/ui';
+import { motion, Variants } from 'framer-motion';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
+import {
+  CreditCard,
+  Lock,
+  ClipboardList,
+  CheckCircle,
+  Clock,
+  XCircle,
+  RotateCcw,
+  AlertCircle,
+  Plus,
+  Receipt,
+  DollarSign,
+  User,
+} from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -15,21 +29,78 @@ interface Transaction {
   releasedAt?: string | null;
   refundedAt?: string | null;
   createdAt: string;
-  project?: {
-    id: string;
-    title: string;
-  };
-  milestone?: {
-    id: string;
-    title: string;
-  };
-  developer?: {
-    id: string;
-    user?: {
-      name: string | null;
-      email: string;
-    };
-  };
+  project?: { id: string; title: string };
+  milestone?: { id: string; title: string };
+  developer?: { id: string; user?: { name: string | null; email: string } };
+}
+
+type TxStatus = Transaction['status'];
+
+const STATUS_CONFIG: Record<TxStatus, { label: string; icon: React.ReactNode; className: string }> = {
+  RELEASED: {
+    label: 'Released',
+    icon: <CheckCircle className="w-3.5 h-3.5" />,
+    className: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  },
+  HELD_IN_ESCROW: {
+    label: 'In Escrow',
+    icon: <Lock className="w-3.5 h-3.5" />,
+    className: 'bg-amber-50 text-amber-700 border border-amber-200',
+  },
+  PENDING: {
+    label: 'Pending',
+    icon: <Clock className="w-3.5 h-3.5" />,
+    className: 'bg-blue-50 text-blue-700 border border-blue-200',
+  },
+  FAILED: {
+    label: 'Failed',
+    icon: <XCircle className="w-3.5 h-3.5" />,
+    className: 'bg-red-50 text-red-700 border border-red-200',
+  },
+  REFUNDED: {
+    label: 'Refunded',
+    icon: <RotateCcw className="w-3.5 h-3.5" />,
+    className: 'bg-slate-50 text-slate-600 border border-slate-200',
+  },
+};
+
+function BillingSkeleton() {
+  return (
+    <div className="space-y-8 pb-12 animate-pulse">
+      {/* Header skeleton */}
+      <div className="rounded-[2.5rem] bg-gradient-to-br from-slate-200 via-slate-100 to-white border border-white/60 p-8 md:p-12 h-52" />
+      {/* Stat cards skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-[2.5rem] bg-white border border-slate-100 p-8 h-36" />
+        ))}
+      </div>
+      {/* Table skeleton */}
+      <div className="rounded-[2.5rem] bg-white border border-slate-100 p-8">
+        <div className="h-6 bg-slate-100 rounded-xl w-48 mb-6" />
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex gap-4">
+              <div className="h-10 bg-slate-100 rounded-xl flex-1" />
+              <div className="h-10 bg-slate-100 rounded-xl w-32" />
+              <div className="h-10 bg-slate-100 rounded-xl w-24" />
+              <div className="h-10 bg-slate-100 rounded-xl w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusChip({ status }: { status: TxStatus }) {
+  const cfg = STATUS_CONFIG[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${cfg.className}`}>
+      {cfg.icon}
+      {cfg.label}
+    </span>
+  );
 }
 
 export default function ClientBillingPage() {
@@ -45,34 +116,18 @@ export default function ClientBillingPage() {
     try {
       setLoading(true);
       setError(null);
-
       const response = await fetch('/api/payment');
-      if (!response.ok) {
-        throw new Error('Failed to fetch transactions');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch transactions');
       const data = await response.json();
       setTransactions(data.transactions || []);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load transactions';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to load transactions');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <>
-        <div className="flex items-center justify-center min-h-[600px]">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <Typography variant="p" size="lg" color="muted">Loading billing information...</Typography>
-          </div>
-        </div>
-      </>
-    );
-  }
+  if (loading) return <BillingSkeleton />;
 
   const totalSpent = transactions
     .filter((t) => t.status === 'RELEASED')
@@ -82,267 +137,271 @@ export default function ClientBillingPage() {
     .filter((t) => t.status === 'HELD_IN_ESCROW')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const totalTransactions = transactions.length;
-
-  const getStatusBadgeVariant = (status: Transaction['status']) => {
-    switch (status) {
-      case 'RELEASED': return 'success';
-      case 'HELD_IN_ESCROW': return 'primary';
-      case 'PENDING': return 'secondary';
-      case 'FAILED': return 'danger';
-      case 'REFUNDED': return 'warning';
-      default: return 'secondary';
-    }
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
   };
 
-  const getStatusIcon = (status: Transaction['status']) => {
-    switch (status) {
-      case 'RELEASED':
-        return <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
-      case 'HELD_IN_ESCROW':
-        return <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>;
-      case 'PENDING':
-        return <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-      case 'FAILED':
-        return <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-      case 'REFUNDED':
-        return <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>;
-      default:
-        return null;
-    }
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 16 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120 } },
   };
 
   return (
-    <>
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8 pb-12"
+    >
+      {/* Header */}
+      <motion.header
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#C0C0C0] via-[#DCDCDC] to-[#F0F0F0] p-8 lg:p-12 shadow-2xl shadow-slate-400/20 border border-white/40"
+      >
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-400/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
+        </div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
           <div>
-            <Typography variant="h1" size="3xl" weight="bold" className="mb-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-emerald-100 shadow-sm mb-6">
+              <CreditCard className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Billing</span>
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-3 tracking-tight leading-tight">
               Billing & Payments
-            </Typography>
-            <Typography variant="p" size="lg" color="muted">
-              View your payment history and transaction details
-            </Typography>
+            </h1>
+            <p className="text-lg text-slate-600 font-medium">
+              View your payment history and escrow transaction details.
+            </p>
           </div>
-          <Badge variant="primary" size="lg" className="px-4 py-2">
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            Payment History
-          </Badge>
+
+          {transactions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-6 shadow-xl shrink-0"
+            >
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Transactions</p>
+              <p className="text-4xl font-black text-slate-900 leading-none">{transactions.length}</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">all time</p>
+            </motion.div>
+          )}
         </div>
+      </motion.header>
 
-        {/* Error Message */}
-        {error && (
-          <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <Typography variant="p" className="text-red-600 dark:text-red-400">
-                  {error}
-                </Typography>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Error */}
+      {error && (
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center gap-3 p-5 rounded-2xl bg-red-50 border border-red-200"
+        >
+          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+          </div>
+          <p className="text-sm font-medium text-red-600">{error}</p>
+        </motion.div>
+      )}
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Total Spent */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Total Spent
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold" className="text-foreground">
-                {formatCurrency(totalSpent)}
-              </Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                All time payments
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* In Escrow */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-yellow-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                In Escrow
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold" className="text-orange-600 dark:text-orange-400">
-                {formatCurrency(inEscrow)}
-              </Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Pending release
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* Transactions */}
-          <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Transactions
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Typography variant="h2" size="3xl" weight="bold">
-                {totalTransactions}
-              </Typography>
-              <Typography variant="p" size="sm" color="muted" className="mt-1">
-                Total transactions
-              </Typography>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Transactions Table */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Spent */}
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 p-8 shadow-sm"
+        >
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
+              <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
+                <DollarSign className="w-5 h-5" />
               </div>
               <div>
-                <CardTitle>Transaction History</CardTitle>
-                <Typography variant="p" size="sm" color="muted">
-                  All your payment transactions
-                </Typography>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Spent</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Released payments</p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {transactions.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-500/10 to-slate-500/10 flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                </div>
-                <Typography variant="h3" size="2xl" weight="bold" className="mb-3">
-                  No transactions yet
-                </Typography>
-                <Typography variant="p" color="muted" className="mb-8 max-w-md mx-auto">
-                  When you make payments for projects, they will appear here.
-                </Typography>
-                <Link href="/client/post">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0">
-                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Post a Project
-                  </Button>
-                </Link>
+            <p className="text-4xl font-black text-slate-900 tracking-tight">
+              {formatCurrency(totalSpent)}
+            </p>
+          </div>
+        </motion.div>
+
+        {/* In Escrow */}
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 p-8 shadow-sm"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
+                <Lock className="w-5 h-5" />
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-slate-200 dark:border-slate-800">
-                      <th className="px-4 py-3 text-left text-sm font-bold text-foreground">Project</th>
-                      <th className="px-4 py-3 text-left text-sm font-bold text-foreground">Milestone</th>
-                      <th className="px-4 py-3 text-left text-sm font-bold text-foreground">Developer</th>
-                      <th className="px-4 py-3 text-right text-sm font-bold text-foreground">Amount</th>
-                      <th className="px-4 py-3 text-right text-sm font-bold text-foreground">Platform Fee</th>
-                      <th className="px-4 py-3 text-left text-sm font-bold text-foreground">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-bold text-foreground">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {transactions.map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                        <td className="px-4 py-4">
-                          {transaction.project ? (
-                            <Link
-                              href={`/client/projects/${transaction.project.id}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                            >
-                              {transaction.project.title}
-                            </Link>
-                          ) : (
-                            <Typography variant="p" size="sm" color="muted">N/A</Typography>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <Typography variant="p" size="sm" color="muted">
-                            {transaction.milestone?.title || 'N/A'}
-                          </Typography>
-                        </td>
-                        <td className="px-4 py-4">
-                          {transaction.developer?.user ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">
-                                {(transaction.developer.user.name || transaction.developer.user.email)[0].toUpperCase()}
-                              </div>
-                              <Typography variant="p" size="sm">
-                                {transaction.developer.user.name || transaction.developer.user.email}
-                              </Typography>
-                            </div>
-                          ) : (
-                            <Typography variant="p" size="sm" color="muted">N/A</Typography>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <Typography variant="p" size="sm" weight="bold">
-                            {formatCurrency(transaction.amount)}
-                          </Typography>
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <Typography variant="p" size="sm" color="muted">
-                            {formatCurrency(transaction.webbidevFee)}
-                          </Typography>
-                        </td>
-                        <td className="px-4 py-4">
-                          <Badge variant={getStatusBadgeVariant(transaction.status)} size="sm" className="inline-flex items-center gap-1">
-                            {getStatusIcon(transaction.status)}
-                            {transaction.status.replace('_', ' ')}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-4">
-                          <Typography variant="p" size="xs" color="muted">
-                            {transaction.releasedAt
-                              ? formatRelativeTime(transaction.releasedAt)
-                              : transaction.heldAt
-                              ? formatRelativeTime(transaction.heldAt)
-                              : formatRelativeTime(transaction.createdAt)}
-                          </Typography>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">In Escrow</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Pending release</p>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+            <p className="text-4xl font-black text-amber-600 tracking-tight">
+              {formatCurrency(inEscrow)}
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Transactions */}
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-[2.5rem] bg-white border border-slate-100 p-8 shadow-sm"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
+                <ClipboardList className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transactions</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Total count</p>
+              </div>
+            </div>
+            <p className="text-4xl font-black text-slate-900 tracking-tight">
+              {transactions.length}
+              <span className="text-lg text-slate-400 font-medium ml-2">total</span>
+            </p>
+          </div>
+        </motion.div>
       </div>
-    </>
+
+      {/* Transaction History */}
+      <motion.div
+        variants={itemVariants}
+        className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden"
+      >
+        {/* Panel header */}
+        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-base font-black text-slate-900 tracking-tight">Transaction History</p>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">All your payment transactions</p>
+            </div>
+          </div>
+        </div>
+
+        {transactions.length === 0 ? (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+            <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-6">
+              <CreditCard className="w-10 h-10 text-slate-400" />
+            </div>
+            <p className="text-xl font-black text-slate-900 mb-2">No transactions yet</p>
+            <p className="text-sm text-slate-400 font-medium max-w-sm mb-8">
+              When you make payments for milestones, they will appear here.
+            </p>
+            <Link
+              href="/client/post"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Post a Project
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/60">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Project</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Milestone</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Developer</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform Fee</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {transactions.map((tx) => {
+                  const devName = tx.developer?.user?.name || tx.developer?.user?.email;
+                  const txDate = tx.releasedAt ?? tx.heldAt ?? tx.createdAt;
+                  return (
+                    <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors group">
+                      {/* Project */}
+                      <td className="px-6 py-5">
+                        {tx.project ? (
+                          <Link
+                            href={`/client/projects/${tx.project.id}`}
+                            className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline underline-offset-2 transition-colors"
+                          >
+                            {tx.project.title}
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-slate-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Milestone */}
+                      <td className="px-6 py-5">
+                        <span className="text-sm text-slate-600 font-medium">
+                          {tx.milestone?.title ?? '—'}
+                        </span>
+                      </td>
+
+                      {/* Developer */}
+                      <td className="px-6 py-5">
+                        {devName ? (
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 font-black text-xs shrink-0">
+                              {devName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm font-medium text-slate-700">{devName}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                              <User className="w-4 h-4 text-slate-400" />
+                            </div>
+                            <span className="text-sm text-slate-400">—</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Amount */}
+                      <td className="px-6 py-5 text-right">
+                        <span className="text-sm font-black text-slate-900">
+                          {formatCurrency(tx.amount)}
+                        </span>
+                      </td>
+
+                      {/* Platform Fee */}
+                      <td className="px-6 py-5 text-right">
+                        <span className="text-sm text-slate-400 font-medium">
+                          {formatCurrency(tx.webbidevFee)}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-5">
+                        <StatusChip status={tx.status} />
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-6 py-5">
+                        <span className="text-xs text-slate-400 font-medium">
+                          {formatRelativeTime(txDate)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }

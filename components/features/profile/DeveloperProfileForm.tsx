@@ -1,20 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { Globe, MapPin, Check, Sparkles, FileText } from 'lucide-react';
+import { MapPin, Check, FileText, Clock } from 'lucide-react';
 
 interface DeveloperProfileFormProps {
   initialData?: {
-    portfolioUrl?: string;
     bioSummary?: string;
     location?: string;
     timeZone?: string;
     skills?: string[];
   };
   onSubmit: (data: {
-    portfolioUrl: string;
     bioSummary: string;
     location: string;
     timeZone?: string;
@@ -23,6 +20,78 @@ interface DeveloperProfileFormProps {
   isLoading?: boolean;
   className?: string;
 }
+
+const TIMEZONE_GROUPS = [
+  {
+    group: 'Americas',
+    zones: [
+      { value: 'America/New_York', label: 'Eastern Time (ET) — New York' },
+      { value: 'America/Chicago', label: 'Central Time (CT) — Chicago' },
+      { value: 'America/Denver', label: 'Mountain Time (MT) — Denver' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time (PT) — Los Angeles' },
+      { value: 'America/Vancouver', label: 'Pacific Time (PT) — Vancouver' },
+      { value: 'America/Toronto', label: 'Eastern Time (ET) — Toronto' },
+      { value: 'America/Sao_Paulo', label: 'Brasília Time (BRT) — São Paulo' },
+      { value: 'America/Mexico_City', label: 'Central Time (CT) — Mexico City' },
+      { value: 'America/Argentina/Buenos_Aires', label: 'Argentina Time (ART) — Buenos Aires' },
+      { value: 'America/Lima', label: 'Peru Time (PET) — Lima' },
+    ],
+  },
+  {
+    group: 'Europe',
+    zones: [
+      { value: 'Europe/London', label: 'GMT/BST — London' },
+      { value: 'Europe/Paris', label: 'Central European Time (CET) — Paris' },
+      { value: 'Europe/Berlin', label: 'Central European Time (CET) — Berlin' },
+      { value: 'Europe/Amsterdam', label: 'Central European Time (CET) — Amsterdam' },
+      { value: 'Europe/Madrid', label: 'Central European Time (CET) — Madrid' },
+      { value: 'Europe/Rome', label: 'Central European Time (CET) — Rome' },
+      { value: 'Europe/Stockholm', label: 'Central European Time (CET) — Stockholm' },
+      { value: 'Europe/Warsaw', label: 'Central European Time (CET) — Warsaw' },
+      { value: 'Europe/Helsinki', label: 'Eastern European Time (EET) — Helsinki' },
+      { value: 'Europe/Moscow', label: 'Moscow Time (MSK) — Moscow' },
+      { value: 'Europe/Istanbul', label: 'Turkey Time (TRT) — Istanbul' },
+    ],
+  },
+  {
+    group: 'Africa',
+    zones: [
+      { value: 'Africa/Nairobi', label: 'East Africa Time (EAT) — Nairobi' },
+      { value: 'Africa/Lagos', label: 'West Africa Time (WAT) — Lagos' },
+      { value: 'Africa/Cairo', label: 'Eastern European Time (EET) — Cairo' },
+      { value: 'Africa/Johannesburg', label: 'South Africa Standard Time (SAST) — Johannesburg' },
+      { value: 'Africa/Accra', label: 'GMT — Accra' },
+    ],
+  },
+  {
+    group: 'Asia',
+    zones: [
+      { value: 'Asia/Riyadh', label: 'Arabia Standard Time (AST) — Riyadh' },
+      { value: 'Asia/Dubai', label: 'Gulf Standard Time (GST) — Dubai' },
+      { value: 'Asia/Karachi', label: 'Pakistan Standard Time (PKT) — Karachi' },
+      { value: 'Asia/Kolkata', label: 'India Standard Time (IST) — Mumbai/Kolkata' },
+      { value: 'Asia/Dhaka', label: 'Bangladesh Standard Time (BST) — Dhaka' },
+      { value: 'Asia/Bangkok', label: 'Indochina Time (ICT) — Bangkok' },
+      { value: 'Asia/Jakarta', label: 'Western Indonesia Time (WIB) — Jakarta' },
+      { value: 'Asia/Singapore', label: 'Singapore Standard Time (SST) — Singapore' },
+      { value: 'Asia/Hong_Kong', label: 'Hong Kong Time (HKT) — Hong Kong' },
+      { value: 'Asia/Shanghai', label: 'China Standard Time (CST) — Shanghai' },
+      { value: 'Asia/Manila', label: 'Philippine Time (PHT) — Manila' },
+      { value: 'Asia/Tokyo', label: 'Japan Standard Time (JST) — Tokyo' },
+      { value: 'Asia/Seoul', label: 'Korea Standard Time (KST) — Seoul' },
+    ],
+  },
+  {
+    group: 'Pacific',
+    zones: [
+      { value: 'Australia/Perth', label: 'Australian Western Time (AWST) — Perth' },
+      { value: 'Australia/Sydney', label: 'Australian Eastern Time (AEST) — Sydney' },
+      { value: 'Australia/Melbourne', label: 'Australian Eastern Time (AEST) — Melbourne' },
+      { value: 'Pacific/Auckland', label: 'New Zealand Standard Time (NZST) — Auckland' },
+      { value: 'Pacific/Honolulu', label: 'Hawaii Standard Time (HST) — Honolulu' },
+    ],
+  },
+];
 
 const AVAILABLE_SKILLS = [
   // Frontend
@@ -56,7 +125,6 @@ export default function DeveloperProfileForm({
   className,
 }: DeveloperProfileFormProps) {
   const [formData, setFormData] = useState({
-    portfolioUrl: initialData?.portfolioUrl || '',
     bioSummary: initialData?.bioSummary || '',
     location: initialData?.location || '',
     timeZone: initialData?.timeZone || '',
@@ -89,12 +157,6 @@ export default function DeveloperProfileForm({
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.portfolioUrl.trim()) {
-      newErrors.portfolioUrl = 'Portfolio URL is required';
-    } else if (!/^https?:\/\/.+/.test(formData.portfolioUrl)) {
-      newErrors.portfolioUrl = 'Please enter a valid URL (starting with http:// or https://)';
-    }
-
     if (!formData.bioSummary.trim()) {
       newErrors.bioSummary = 'Bio summary is required';
     } else if (formData.bioSummary.length > 400) {
@@ -105,8 +167,8 @@ export default function DeveloperProfileForm({
       newErrors.location = 'Location is required';
     }
 
-    if (formData.skills.length !== 5) {
-      newErrors.skills = 'Please select exactly 5 skills to showcase your best expertise';
+    if (formData.skills.length === 0) {
+      newErrors.skills = 'Please select at least one skill';
     }
 
     setErrors(newErrors);
@@ -118,7 +180,6 @@ export default function DeveloperProfileForm({
     if (!validate()) return;
 
     await onSubmit({
-      portfolioUrl: formData.portfolioUrl.trim(),
       bioSummary: formData.bioSummary.trim(),
       location: formData.location.trim(),
       timeZone: formData.timeZone.trim() || undefined,
@@ -127,42 +188,14 @@ export default function DeveloperProfileForm({
   };
 
   return (
-    <div className={cn("p-8 md:p-12 bg-white/50", className)}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 border-b border-slate-200 pb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Profile Details</h2>
-          <p className="text-slate-500">Update your public profile information</p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-sm font-medium">
-          <Sparkles className="w-4 h-4" />
-          <span>Professional Profile</span>
-        </div>
+    <div className={cn("p-8 md:p-12", className)}>
+      <div className="mb-10 border-b border-slate-100 pb-8">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Profile</p>
+        <p className="text-slate-500 text-sm">Update your public profile information</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Portfolio URL */}
-          <div className="space-y-3">
-            <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider ml-1">Portfolio Link</label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Globe className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-              </div>
-              <input
-                type="url"
-                placeholder="https://your-portfolio.com"
-                value={formData.portfolioUrl}
-                onChange={(e) => handleChange('portfolioUrl', e.target.value)}
-                disabled={isLoading}
-                className={cn(
-                  "w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm",
-                  errors.portfolioUrl && "border-red-500/50 focus:ring-red-500/20"
-                )}
-              />
-            </div>
-            {errors.portfolioUrl && <p className="text-sm text-red-500 ml-1">{errors.portfolioUrl}</p>}
-          </div>
-
           {/* Location */}
           <div className="space-y-3">
             <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider ml-1">Location</label>
@@ -183,6 +216,40 @@ export default function DeveloperProfileForm({
               />
             </div>
             {errors.location && <p className="text-sm text-red-500 ml-1">{errors.location}</p>}
+          </div>
+
+          {/* Timezone */}
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider ml-1">
+              Timezone
+              <span className="ml-1.5 text-xs font-medium text-slate-400 normal-case tracking-normal">Optional</span>
+            </label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Clock className="h-5 w-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+              </div>
+              <select
+                value={formData.timeZone}
+                onChange={(e) => handleChange('timeZone', e.target.value)}
+                disabled={isLoading}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all shadow-sm appearance-none cursor-pointer disabled:opacity-50"
+              >
+                <option value="">Select timezone…</option>
+                {TIMEZONE_GROUPS.map(({ group, zones }) => (
+                  <optgroup key={group} label={group}>
+                    {zones.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {/* Chevron icon */}
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -216,8 +283,8 @@ export default function DeveloperProfileForm({
         <div className="space-y-4 pt-4 border-t border-slate-200">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 mb-2">
             <div>
-              <label className="text-lg font-bold text-slate-900">Top 5 Skills</label>
-              <p className="text-slate-500 text-sm mt-1">Select exactly 5 skills that best represent your expertise</p>
+              <label className="text-lg font-bold text-slate-900">Skills</label>
+              <p className="text-slate-500 text-sm mt-1">Select up to 5 skills that best represent your expertise</p>
             </div>
             <div className="text-sm font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
               <span className={cn(
@@ -266,31 +333,22 @@ export default function DeveloperProfileForm({
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Submit */}
         <div className="pt-6 flex justify-end">
-           <Button
-             type="submit"
-             disabled={isLoading}
-             className={cn(
-               "relative px-10 py-6 rounded-2xl text-base font-bold tracking-wide transition-all duration-300 overflow-hidden group",
-               "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl shadow-blue-600/20 border border-blue-400/20"
-             )}
-           >
-             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-             <span className="relative flex items-center gap-2">
-               {isLoading ? (
-                 <>
-                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                   Updating Profile...
-                 </>
-               ) : (
-                 <>
-                   {initialData ? 'Update Profile' : 'Create Profile'}
-                   <Sparkles className="w-4 h-4 ml-1" />
-                 </>
-               )}
-             </span>
-           </Button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="px-10 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving…
+              </>
+            ) : (
+              initialData ? 'Update Profile' : 'Create Profile'
+            )}
+          </button>
         </div>
       </form>
     </div>

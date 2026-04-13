@@ -6,7 +6,7 @@ import { Skill } from '@/types';
 
 // Validation schema
 const updateProfileSchema = z.object({
-  portfolioUrl: z.string().url('Invalid portfolio URL'),
+  portfolioUrl: z.string().url('Invalid URL').optional().nullable().or(z.literal('')),
   bioSummary: z.string().min(10, 'Bio summary must be at least 10 characters').max(400, 'Bio summary must be 400 characters or less'),
   location: z.string().min(1, 'Location is required'),
   timeZone: z.string().optional().nullable(),
@@ -14,7 +14,7 @@ const updateProfileSchema = z.object({
     'REACT', 'VUE_JS', 'ANGULAR', 'JAVASCRIPT', 'TYPESCRIPT', 'TAILWIND_CSS', 'SASS', 'ACCESSIBILITY_A11Y', 'NEXT_JS', 'HTML_CSS',
     'NODE_JS', 'PYTHON_DJANGO', 'PYTHON_FLASK', 'PHP_LARAVEL', 'RUBY_ON_RAILS', 'GO', 'POSTGRESQL', 'MYSQL', 'MONGODB', 'AWS', 'AZURE', 'RESTFUL_APIS', 'GRAPHQL',
     'FIGMA', 'SKETCH', 'ADOBE_XD', 'PROTOTYPING', 'USER_RESEARCH', 'WIREFRAMING', 'DESIGN_SYSTEMS'
-  ] as const)).length(5, 'Exactly 5 skills are required'),
+  ] as const)).min(1, 'Select at least one skill').max(5, 'Maximum 5 skills allowed'),
 });
 
 // GET /api/developer/profile - Get current developer's profile
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       profile = await prisma.developerProfile.update({
         where: { userId: user.id },
         data: {
-          portfolioUrl,
+          portfolioUrl: portfolioUrl || null,
           bioSummary,
           location,
           timeZone: timeZone || null,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       profile = await prisma.developerProfile.create({
         data: {
           userId: user.id,
-          portfolioUrl,
+          portfolioUrl: portfolioUrl || null,
           bioSummary,
           location,
           timeZone: timeZone || null,

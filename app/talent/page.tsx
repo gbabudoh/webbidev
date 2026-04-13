@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import PublicLayout from '@/components/layouts/PublicLayout';
 import DeveloperProfileCard from '@/components/features/profile/DeveloperProfileCard';
-import { Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,26 +39,20 @@ const skillCategories = [
     name: 'Frontend',
     icon: Code2,
     color: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-    textColor: 'text-blue-600 dark:text-blue-400',
-    skills: ['REACT', 'VUE_JS', 'ANGULAR', 'JAVASCRIPT', 'TYPESCRIPT', 'NEXT_JS']
+    skills: ['REACT', 'VUE_JS', 'ANGULAR', 'JAVASCRIPT', 'TYPESCRIPT', 'NEXT_JS'],
   },
   {
     name: 'Backend',
     icon: Server,
     color: 'from-emerald-500 to-teal-500',
-    bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-    textColor: 'text-emerald-600 dark:text-emerald-400',
-    skills: ['NODE_JS', 'PYTHON_DJANGO', 'PYTHON_FLASK', 'PHP_LARAVEL', 'RUBY_ON_RAILS']
+    skills: ['NODE_JS', 'PYTHON_DJANGO', 'PYTHON_FLASK', 'PHP_LARAVEL', 'RUBY_ON_RAILS'],
   },
   {
     name: 'Design',
     icon: Palette,
     color: 'from-purple-500 to-pink-500',
-    bgColor: 'bg-purple-50 dark:bg-purple-950/30',
-    textColor: 'text-purple-600 dark:text-purple-400',
-    skills: ['UI_UX_DESIGN', 'FIGMA', 'ADOBE_XD', 'SKETCH']
-  }
+    skills: ['UI_UX_DESIGN', 'FIGMA', 'ADOBE_XD', 'SKETCH'],
+  },
 ];
 
 function TalentPageContent() {
@@ -215,7 +208,12 @@ function TalentPageContent() {
               >
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-sm font-semibold text-slate-700">
-                  {pagination.total}+ Verified Developers Online
+                  {loading ? (
+                    <span className="inline-block h-3.5 w-20 bg-slate-200 animate-pulse rounded-full align-middle" />
+                  ) : (
+                    `${pagination.total}+`
+                  )}{' '}
+                  Verified Developers Online
                 </span>
               </motion.div>
 
@@ -385,9 +383,9 @@ function TalentPageContent() {
                               </div>
                               <span className="font-medium text-slate-700">{category.name}</span>
                               {selectedSkills.filter(s => category.skills.includes(s)).length > 0 && (
-                                <Badge variant="primary" size="sm">
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black">
                                   {selectedSkills.filter(s => category.skills.includes(s)).length}
-                                </Badge>
+                                </span>
                               )}
                             </div>
                             {expandedCategories.includes(category.name) ? (
@@ -581,13 +579,13 @@ function TalentPageContent() {
                   <p className="text-slate-500 mb-8 max-w-md mx-auto">
                     Try adjusting your filters or search criteria to find more results
                   </p>
-                  <Button
+                  <button
                     onClick={clearAllFilters}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all cursor-pointer"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all cursor-pointer"
                   >
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-4 h-4" />
                     Clear All Filters
-                  </Button>
+                  </button>
                 </motion.div>
               ) : (
                 <motion.div 
@@ -621,14 +619,13 @@ function TalentPageContent() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <Button
-                    variant="outline"
+                  <button
                     onClick={() => handlePageChange(pagination.page - 1)}
                     disabled={pagination.page === 1}
-                    className="px-4 py-2 rounded-xl font-medium cursor-pointer"
+                    className="px-4 py-2 rounded-xl font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     ← Previous
-                  </Button>
+                  </button>
 
                   <div className="flex items-center gap-1 mx-4">
                     {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
@@ -666,14 +663,13 @@ function TalentPageContent() {
                     )}
                   </div>
 
-                  <Button
-                    variant="outline"
+                  <button
                     onClick={() => handlePageChange(pagination.page + 1)}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="px-4 py-2 rounded-xl font-medium cursor-pointer"
+                    className="px-4 py-2 rounded-xl font-medium border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                   >
                     Next →
-                  </Button>
+                  </button>
                 </motion.div>
               )}
             </>

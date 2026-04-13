@@ -1,13 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import ConversationList from '@/components/features/messaging/ConversationList';
 import MessageView from '@/components/features/messaging/MessageView';
 import DirectMessageComposer from '@/components/features/messaging/DirectMessageComposer';
 import DirectMessageView from '@/components/features/messaging/DirectMessageView';
-import { Typography, Button, Badge } from '@/components/ui';
+import { Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Send, Users, Inbox, Mail } from 'lucide-react';
+import {
+  MessageSquare,
+  Send,
+  Users,
+  Inbox,
+  Mail,
+  AlertCircle,
+  Plus,
+} from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -23,11 +32,7 @@ interface Conversation {
     id: string;
     content: string;
     senderId: string;
-    sender: {
-      id: string;
-      name: string | null;
-      email: string;
-    };
+    sender: { id: string; name: string | null; email: string };
     createdAt: string;
   } | null;
   unreadCount: number;
@@ -39,12 +44,7 @@ interface Message {
   id: string;
   content: string;
   senderId: string;
-  sender: {
-    id: string;
-    name: string | null;
-    email: string;
-    role: string;
-  };
+  sender: { id: string; name: string | null; email: string; role: string };
   attachments?: string[];
   isEvidence?: boolean;
   createdAt: string;
@@ -60,12 +60,7 @@ interface DirectConversation {
     image: string | null;
     role: string;
   };
-  lastMessage: {
-    id: string;
-    subject: string;
-    content: string;
-    createdAt: string;
-  } | null;
+  lastMessage: { id: string; subject: string; content: string; createdAt: string } | null;
   unreadCount: number;
 }
 
@@ -77,12 +72,7 @@ interface DirectMessage {
   recipientId: string;
   createdAt: string;
   read: boolean;
-  sender: {
-    id: string;
-    name: string | null;
-    email: string;
-    role: string;
-  };
+  sender: { id: string; name: string | null; email: string; role: string };
 }
 
 interface User {
@@ -93,11 +83,39 @@ interface User {
   role: string;
 }
 
+function PanelSkeleton() {
+  return (
+    <div className="flex h-[700px] bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden animate-pulse">
+      <div className="w-72 shrink-0 border-r border-slate-100 dark:border-slate-800 flex flex-col">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+          <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-lg w-32 mb-2" />
+          <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-lg w-20" />
+        </div>
+        <div className="p-4 space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
+                <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded w-full" />
+                <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+      </div>
+    </div>
+  );
+}
+
 export default function DeveloperMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [projectTitle, setProjectTitle] = useState<string>('');
+  const [projectTitle, setProjectTitle] = useState('');
   const [otherParty, setOtherParty] = useState<Conversation['otherParty']>(null);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -110,47 +128,32 @@ export default function DeveloperMessagesPage() {
   const [showComposer, setShowComposer] = useState(false);
 
   useEffect(() => {
-    if (viewMode === 'project') {
-      fetchConversations();
-    } else {
-      fetchDirectConversations();
-      fetchUsers();
-    }
+    if (viewMode === 'project') fetchConversations();
+    else { fetchDirectConversations(); fetchUsers(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
   useEffect(() => {
-    if (selectedConversationId && viewMode === 'project') {
-      fetchMessages(selectedConversationId);
-    }
+    if (selectedConversationId && viewMode === 'project') fetchMessages(selectedConversationId);
   }, [selectedConversationId, viewMode]);
 
   useEffect(() => {
-    if (selectedDirectConversation && viewMode === 'direct') {
-      fetchDirectMessages(selectedDirectConversation);
-    }
+    if (selectedDirectConversation && viewMode === 'direct') fetchDirectMessages(selectedDirectConversation);
   }, [selectedDirectConversation, viewMode]);
 
   const fetchConversations = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const response = await fetch('/api/messaging/conversations');
-      if (!response.ok) {
-        throw new Error('Failed to fetch conversations');
-      }
-
-      const data = await response.json();
+      const res = await fetch('/api/messaging/conversations');
+      if (!res.ok) throw new Error('Failed to fetch conversations');
+      const data = await res.json();
       setConversations(data.conversations || []);
-
-      // Auto-select first conversation if available
-      if (data.conversations && data.conversations.length > 0 && !selectedConversationId) {
+      if (data.conversations?.length > 0 && !selectedConversationId) {
         setSelectedConversationId(data.conversations[0].id);
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load conversations';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
@@ -160,19 +163,14 @@ export default function DeveloperMessagesPage() {
     try {
       setMessagesLoading(true);
       setError(null);
-
-      const response = await fetch(`/api/messaging/messages?projectId=${projectId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-
-      const data = await response.json();
+      const res = await fetch(`/api/messaging/messages?projectId=${projectId}`);
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      const data = await res.json();
       setMessages(data.messages || []);
       setProjectTitle(data.project?.title || '');
       setOtherParty(data.otherParty || null);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setMessagesLoading(false);
     }
@@ -180,60 +178,30 @@ export default function DeveloperMessagesPage() {
 
   const handleSendMessage = async (content: string) => {
     if (!selectedConversationId) return;
-
-    try {
-      const response = await fetch('/api/messaging/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId: selectedConversationId,
-          content,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      const data = await response.json();
-      
-      // Add new message to the list
-      setMessages((prev) => [...prev, data.message]);
-      
-      // Refresh conversations to update last message
-      fetchConversations();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-      setError(errorMessage);
-      throw err;
-    }
-  };
-
-  const handleSelectConversation = (conversationId: string) => {
-    setSelectedConversationId(conversationId);
+    const res = await fetch('/api/messaging/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: selectedConversationId, content }),
+    });
+    if (!res.ok) throw new Error('Failed to send message');
+    const data = await res.json();
+    setMessages((prev) => [...prev, data.message]);
+    fetchConversations();
   };
 
   const fetchDirectConversations = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const response = await fetch('/api/messaging/conversations/direct');
-      if (!response.ok) {
-        throw new Error('Failed to fetch direct conversations');
-      }
-
-      const data = await response.json();
+      const res = await fetch('/api/messaging/conversations/direct');
+      if (!res.ok) throw new Error('Failed to fetch direct conversations');
+      const data = await res.json();
       setDirectConversations(data.conversations || []);
-
-      if (data.conversations && data.conversations.length > 0 && !selectedDirectConversation) {
+      if (data.conversations?.length > 0 && !selectedDirectConversation) {
         setSelectedDirectConversation(data.conversations[0].userId);
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load direct conversations';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to load direct conversations');
     } finally {
       setLoading(false);
     }
@@ -242,18 +210,12 @@ export default function DeveloperMessagesPage() {
   const fetchDirectMessages = async (userId: string) => {
     try {
       setMessagesLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/messaging/direct?conversationWith=${userId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch direct messages');
-      }
-
-      const data = await response.json();
+      const res = await fetch(`/api/messaging/direct?conversationWith=${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch direct messages');
+      const data = await res.json();
       setDirectMessages(data.messages || []);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load direct messages';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to load direct messages');
     } finally {
       setMessagesLoading(false);
     }
@@ -261,9 +223,9 @@ export default function DeveloperMessagesPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users/search');
-      if (response.ok) {
-        const data = await response.json();
+      const res = await fetch('/api/users/search');
+      if (res.ok) {
+        const data = await res.json();
         setUsers(data.users || []);
       }
     } catch (err) {
@@ -272,347 +234,318 @@ export default function DeveloperMessagesPage() {
   };
 
   const handleSendDirectMessage = async (recipientId: string, subject: string, content: string) => {
-    try {
-      const response = await fetch('/api/messaging/direct', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipientId,
-          subject,
-          content,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
-      }
-
-      const data = await response.json();
-      
-      // If we're viewing this conversation, add the message
-      if (selectedDirectConversation === recipientId) {
-        setDirectMessages((prev) => [...prev, data.message]);
-      } else {
-        // Otherwise, refresh and select the conversation
-        await fetchDirectConversations();
-        setSelectedDirectConversation(recipientId);
-        setShowComposer(false);
-      }
-      
-      // Refresh conversations to update last message
-      fetchDirectConversations();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
-      setError(errorMessage);
-      throw err;
+    const res = await fetch('/api/messaging/direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipientId, subject, content }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      throw new Error(d.error || 'Failed to send message');
     }
+    const data = await res.json();
+    if (selectedDirectConversation === recipientId) {
+      setDirectMessages((prev) => [...prev, data.message]);
+    } else {
+      await fetchDirectConversations();
+      setSelectedDirectConversation(recipientId);
+      setShowComposer(false);
+    }
+    fetchDirectConversations();
   };
 
-  if (loading) {
-    return (
-      <>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
-              <MessageSquare className="w-8 h-8 text-white" />
-            </div>
-            <Typography variant="p" size="lg" color="muted">
-              Loading messages...
-            </Typography>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  const totalUnread = viewMode === 'project' 
-    ? conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)
-    : directConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+  const totalUnread = viewMode === 'project'
+    ? conversations.reduce((sum, c) => sum + c.unreadCount, 0)
+    : directConversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-pink-950/30 border border-blue-100 dark:border-blue-900/50 p-8">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-pink-400/20 to-purple-400/20 rounded-full blur-3xl" />
-          
-          <div className="relative flex items-start justify-between">
-            <div className="flex items-start gap-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <MessageSquare className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <Typography variant="h1" size="3xl" weight="bold" className="mb-2">
-                  Messages
-                </Typography>
-                <Typography variant="p" size="lg" color="muted">
-                  {viewMode === 'project' 
-                    ? 'Communicate with clients about your projects'
-                    : 'Send direct messages to other users'}
-                </Typography>
-                {totalUnread > 0 && (
-                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-                    <Inbox className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <Typography variant="p" size="sm" weight="semibold" className="text-blue-600 dark:text-blue-400">
-                      {totalUnread} unread message{totalUnread !== 1 ? 's' : ''}
-                    </Typography>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant={viewMode === 'project' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('project')}
-                className="gap-2"
-              >
-                <Users className="w-4 h-4" />
-                Project Messages
-              </Button>
-              <Button
-                variant={viewMode === 'direct' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('direct')}
-                className="gap-2"
-              >
-                <Mail className="w-4 h-4" />
-                Direct Messages
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-8 pb-12">
+
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#C0C0C0] via-[#DCDCDC] to-[#F0F0F0] p-8 lg:p-12 shadow-2xl shadow-slate-400/20 border border-white/40"
+      >
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-400/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
         </div>
 
-        {error && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border border-red-200 dark:border-red-800 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <Typography variant="p" className="text-red-600 dark:text-red-400">
-                {error}
-              </Typography>
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-indigo-100 shadow-sm mb-6">
+              <MessageSquare className="w-4 h-4 text-indigo-500" />
+              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Messaging</span>
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-3 tracking-tight leading-tight">
+              Messages
+            </h1>
+            <p className="text-lg text-slate-600 font-medium">
+              {viewMode === 'project'
+                ? 'Conversations with clients about active projects.'
+                : 'Direct messages with other users on the platform.'}
+            </p>
+          </div>
+
+          {totalUnread > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-6 shadow-xl shrink-0"
+            >
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unread</p>
+              <p className="text-4xl font-black text-blue-600 leading-none">{totalUnread}</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">
+                {totalUnread === 1 ? 'new message' : 'new messages'}
+              </p>
+            </motion.div>
+          )}
+        </div>
+      </motion.header>
+
+      {/* Mode Tabs */}
+      <div className="flex gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl w-fit">
+        <button
+          onClick={() => setViewMode('project')}
+          className={cn(
+            'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all',
+            viewMode === 'project'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+          )}
+        >
+          <Users className="w-4 h-4" />
+          Project Messages
+          {viewMode === 'project' && conversations.reduce((s, c) => s + c.unreadCount, 0) > 0 && (
+            <Badge variant="primary" size="sm">
+              {conversations.reduce((s, c) => s + c.unreadCount, 0)}
+            </Badge>
+          )}
+        </button>
+        <button
+          onClick={() => setViewMode('direct')}
+          className={cn(
+            'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all',
+            viewMode === 'direct'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+          )}
+        >
+          <Mail className="w-4 h-4" />
+          Direct Messages
+          {viewMode === 'direct' && directConversations.reduce((s, c) => s + c.unreadCount, 0) > 0 && (
+            <Badge variant="primary" size="sm">
+              {directConversations.reduce((s, c) => s + c.unreadCount, 0)}
+            </Badge>
+          )}
+        </button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 p-5 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+          <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+          </div>
+          <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && <PanelSkeleton />}
+
+      {/* Project Messages Panel */}
+      {!loading && viewMode === 'project' && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col lg:flex-row bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden lg:h-[700px]"
+        >
+          {/* Left sidebar */}
+          <div className="lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 flex flex-col max-h-64 lg:max-h-none">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <p className="text-base font-black text-slate-900 dark:text-white tracking-tight">Conversations</p>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                {conversations.length} project {conversations.length === 1 ? 'thread' : 'threads'}
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ConversationList
+                conversations={conversations}
+                selectedConversationId={selectedConversationId || undefined}
+                onSelectConversation={setSelectedConversationId}
+              />
             </div>
           </div>
-        )}
 
-        {viewMode === 'project' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Conversation List */}
-            <div className="lg:col-span-1">
-              <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-                    <Typography variant="h3" size="lg" weight="semibold">
-                      Conversations
-                    </Typography>
-                  </div>
-                  <Typography variant="p" size="sm" color="muted" className="mt-1">
-                    {conversations.length} active project{conversations.length !== 1 ? 's' : ''}
-                  </Typography>
+          {/* Right message view */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-[400px] lg:min-h-0">
+            {selectedConversationId ? (
+              <MessageView
+                projectId={selectedConversationId}
+                projectTitle={projectTitle}
+                otherParty={otherParty}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isLoading={messagesLoading}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center p-8">
+                <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <MessageSquare className="w-8 h-8 text-slate-400" />
                 </div>
-                <div className="p-2">
-                  <ConversationList
-                    conversations={conversations}
-                    selectedConversationId={selectedConversationId || undefined}
-                    onSelectConversation={handleSelectConversation}
-                  />
+                <p className="text-base font-black text-slate-900 dark:text-white">Select a conversation</p>
+                <p className="text-sm text-slate-400 font-medium max-w-xs">
+                  Choose a project from the list to view and send messages.
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Direct Messages Panel */}
+      {!loading && viewMode === 'direct' && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col lg:flex-row bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden lg:h-[700px]"
+        >
+          {/* Left sidebar */}
+          <div className="lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 flex flex-col max-h-64 lg:max-h-none">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-base font-black text-slate-900 dark:text-white tracking-tight">Direct Messages</p>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">{directConversations.length} conversations</p>
                 </div>
               </div>
+              <button
+                onClick={() => { setShowComposer(true); setSelectedDirectConversation(null); }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                New Message
+              </button>
             </div>
 
-            {/* Message View */}
-            <div className="lg:col-span-2">
-              {selectedConversationId ? (
-                <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                  <MessageView
-                    projectId={selectedConversationId}
-                    projectTitle={projectTitle}
-                    otherParty={otherParty}
-                    messages={messages}
-                    onSendMessage={handleSendMessage}
-                    isLoading={messagesLoading}
-                  />
+            <div className="flex-1 overflow-y-auto">
+              {directConversations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+                    <Inbox className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-black text-slate-900 dark:text-white mb-1">No conversations yet</p>
+                  <p className="text-xs text-slate-400 font-medium">Send a new message to get started</p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-[600px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center mb-4">
-                    <MessageSquare className="w-10 h-10 text-zinc-400 dark:text-zinc-600" />
-                  </div>
-                  <Typography variant="p" color="muted" className="text-center">
-                    Select a conversation to view messages
-                  </Typography>
+                <div>
+                  {directConversations.map((conv) => {
+                    const isSelected = selectedDirectConversation === conv.userId && !showComposer;
+                    const displayName = conv.otherParty.name || conv.otherParty.email;
+                    return (
+                      <button
+                        key={conv.id}
+                        onClick={() => { setSelectedDirectConversation(conv.userId); setShowComposer(false); }}
+                        className={cn(
+                          'w-full text-left px-4 py-4 flex items-start gap-3 transition-all border-l-2',
+                          isSelected
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500'
+                            : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'
+                        )}
+                      >
+                        <div className="relative shrink-0">
+                          <div className={cn(
+                            'w-10 h-10 rounded-2xl flex items-center justify-center font-black text-base',
+                            isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          )}>
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                          {conv.unreadCount > 0 && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white dark:border-slate-900 rounded-full flex items-center justify-center">
+                              <span className="text-[8px] text-white font-black leading-none">{conv.unreadCount > 9 ? '9+' : conv.unreadCount}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            'text-sm font-black truncate mb-0.5',
+                            isSelected ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-white'
+                          )}>
+                            {displayName}
+                          </p>
+                          {conv.lastMessage && (
+                            <p className="text-xs text-slate-400 font-medium truncate">{conv.lastMessage.subject}</p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Direct Messages List */}
-            <div className="lg:col-span-1">
-              <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-                      <Typography variant="h3" size="lg" weight="semibold">
-                        Direct Messages
-                      </Typography>
-                    </div>
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={() => setShowComposer(true)}
-                  >
-                    <Send className="w-4 h-4" />
-                    New Message
-                  </Button>
-                </div>
-                
-                <div className="p-2 max-h-[600px] overflow-y-auto">
-                  {directConversations.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center mx-auto mb-3">
-                        <Inbox className="w-8 h-8 text-zinc-400 dark:text-zinc-600" />
-                      </div>
-                      <Typography variant="p" color="muted" size="sm">
-                        No conversations yet
-                      </Typography>
-                      <Typography variant="p" color="muted" size="xs" className="mt-1">
-                        Start a new conversation
-                      </Typography>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {directConversations.map((conv) => (
-                        <div
-                          key={conv.id}
-                          className={cn(
-                            'p-4 border rounded-xl cursor-pointer transition-all duration-200',
-                            selectedDirectConversation === conv.userId 
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-sm' 
-                              : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:border-zinc-300 dark:hover:border-zinc-700'
-                          )}
-                          onClick={() => {
-                            setSelectedDirectConversation(conv.userId);
-                            setShowComposer(false);
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                <Typography variant="p" size="sm" weight="bold" className="text-white">
-                                  {(conv.otherParty.name || conv.otherParty.email).charAt(0).toUpperCase()}
-                                </Typography>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <Typography variant="p" weight="semibold" className="truncate">
-                                  {conv.otherParty.name || conv.otherParty.email}
-                                </Typography>
-                                <Typography variant="p" size="sm" color="muted" className="truncate mt-0.5">
-                                  {conv.lastMessage?.subject || 'No subject'}
-                                </Typography>
-                              </div>
-                            </div>
-                            {conv.unreadCount > 0 && (
-                              <Badge variant="primary" size="sm" className="flex-shrink-0">
-                                {conv.unreadCount}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Message View or Composer */}
-            <div className="lg:col-span-2">
-              {showComposer ? (
-                <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                          <Send className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <Typography variant="h2" size="xl" weight="bold">
-                            New Message
-                          </Typography>
-                          <Typography variant="p" size="sm" color="muted">
-                            Compose a direct message
-                          </Typography>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowComposer(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+          {/* Right panel */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-[400px] lg:min-h-0">
+            {showComposer ? (
+              <div className="flex flex-col h-full">
+                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-between">
+                  <div>
+                    <p className="text-base font-black text-slate-900 dark:text-white">New Message</p>
+                    <p className="text-xs text-slate-400 font-medium">Compose a direct message</p>
                   </div>
-                  <div className="p-6">
-                    <DirectMessageComposer
-                      users={users}
-                      onSendMessage={async (recipientId, subject, content) => {
-                        await handleSendDirectMessage(recipientId, subject, content);
-                        setShowComposer(false);
-                        fetchDirectConversations();
-                      }}
-                      isLoading={messagesLoading}
-                    />
-                  </div>
+                  <button
+                    onClick={() => setShowComposer(false)}
+                    className="text-sm font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors px-4 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              ) : selectedDirectConversation ? (
-                <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                  <DirectMessageView
-                    otherParty={directConversations.find(c => c.userId === selectedDirectConversation)?.otherParty || null}
-                    messages={directMessages}
-                    onSendMessage={async (content: string) => {
-                      const lastMessage = directMessages[directMessages.length - 1];
-                      const subject = lastMessage?.subject ? `Re: ${lastMessage.subject}` : 'Direct Message';
-                      await handleSendDirectMessage(selectedDirectConversation, subject, content);
+                <div className="flex-1 overflow-y-auto p-6">
+                  <DirectMessageComposer
+                    users={users}
+                    onSendMessage={async (recipientId, subject, content) => {
+                      await handleSendDirectMessage(recipientId, subject, content);
+                      setShowComposer(false);
+                      fetchDirectConversations();
                     }}
                     isLoading={messagesLoading}
                   />
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-[600px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center mb-4">
-                    <Mail className="w-10 h-10 text-zinc-400 dark:text-zinc-600" />
-                  </div>
-                  <Typography variant="p" color="muted" className="mb-4 text-center">
-                    Select a conversation or create a new message
-                  </Typography>
-                  <Button
-                    variant="primary"
-                    onClick={() => setShowComposer(true)}
-                    className="gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    New Message
-                  </Button>
+              </div>
+            ) : selectedDirectConversation ? (
+              <DirectMessageView
+                otherParty={directConversations.find(c => c.userId === selectedDirectConversation)?.otherParty || null}
+                messages={directMessages}
+                onSendMessage={async (content: string) => {
+                  const lastMessage = directMessages[directMessages.length - 1];
+                  const subject = lastMessage?.subject ? `Re: ${lastMessage.subject}` : 'Direct Message';
+                  await handleSendDirectMessage(selectedDirectConversation, subject, content);
+                }}
+                isLoading={messagesLoading}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center p-8">
+                <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Mail className="w-8 h-8 text-slate-400" />
                 </div>
-              )}
-            </div>
+                <p className="text-base font-black text-slate-900 dark:text-white">No conversation selected</p>
+                <p className="text-sm text-slate-400 font-medium max-w-xs">Select a conversation from the list or compose a new message.</p>
+                <button
+                  onClick={() => setShowComposer(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors mt-2"
+                >
+                  <Send className="w-4 h-4" />
+                  New Message
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </>
+        </motion.div>
+      )}
+    </div>
   );
 }

@@ -22,9 +22,16 @@ export default function Header({ className }: HeaderProps) {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Browse Talent', href: '/talent' },
+    { name: 'Find Projects', href: '/find-projects' },
     { name: 'How It Works', href: '/how-it-works' },
     { name: 'Pricing', href: '/pricing' },
   ];
+
+  const isAppRoute =
+    pathname.startsWith('/developer') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/client');
 
   const getDashboardLink = () => {
     if (!user) return '/login';
@@ -55,55 +62,44 @@ export default function Header({ className }: HeaderProps) {
           />
         </Link>
 
-        {/* Desktop Navigation - Hidden on mobile */}
-        <div className="hidden lg:flex lg:items-center lg:gap-x-1 flex-1 mx-8">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
+        {/* Desktop Navigation - marketing pages only */}
+        {!isAppRoute && (
+          <div className="hidden lg:flex lg:items-center lg:gap-x-1 flex-1 mx-8">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    'relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer',
+                    isActive
+                      ? 'text-slate-900 bg-slate-100'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  )}
+                >
+                  {item.name}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl -z-10"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+
+            {isAuthenticated && (
               <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer',
-                  isActive
-                    ? 'text-slate-900 bg-slate-100'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                )}
+                href={getDashboardLink()}
+                className="relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               >
-                {item.name}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl -z-10"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
+                Dashboard
               </Link>
-            );
-          })}
-          
-          {/* Dashboard Link - Desktop only */}
-          {isAuthenticated && (
-            <Link
-              href={getDashboardLink()}
-              className={cn(
-                'relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer',
-                pathname.includes('/dashboard') || pathname.includes('/admin')
-                  ? 'text-slate-900 bg-slate-100'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              )}
-            >
-              Dashboard
-              {(pathname.includes('/dashboard') || pathname.includes('/admin')) && (
-                <motion.div
-                  layoutId="activeNav"
-                  className="absolute inset-0 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl -z-10"
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-            </Link>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Desktop Auth Buttons - Hidden on mobile */}
         <div className="hidden md:flex items-center gap-x-2">

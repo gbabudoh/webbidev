@@ -24,7 +24,7 @@ export default function DashboardLayout({
         <Sidebar />
         <main
           className={cn(
-            'flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-900',
+            'flex-1 overflow-y-auto bg-slate-50',
             className
           )}
         >

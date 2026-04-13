@@ -1,10 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, Typography, Button, Input, Textarea, Select } from '@/components/ui';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  FileText,
+  Target,
+  Plus,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  ArrowLeft,
+  DollarSign,
+  Calendar,
+  Layers,
+  ChevronDown,
+} from 'lucide-react';
 
 interface Milestone {
   title: string;
@@ -15,17 +28,31 @@ interface Milestone {
 
 type SkillType = 'Frontend' | 'Backend' | 'Fullstack' | 'UI/UX';
 
+const SKILL_OPTIONS: { value: SkillType; label: string }[] = [
+  { value: 'Frontend',  label: 'Frontend Development' },
+  { value: 'Backend',   label: 'Backend Development' },
+  { value: 'Fullstack', label: 'Fullstack Development' },
+  { value: 'UI/UX',     label: 'UI/UX Design' },
+];
+
+const INPUT_BASE =
+  'w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all disabled:opacity-50';
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{children}</p>
+  );
+}
+
 export default function PostProjectPage() {
   const router = useRouter();
 
-
-
   const [formData, setFormData] = useState({
-    title: '',
+    title:       '',
     description: '',
-    budget: '',
-    deadline: '',
-    skillType: 'Frontend' as SkillType,
+    budget:      '',
+    deadline:    '',
+    skillType:   'Frontend' as SkillType,
   });
 
   const [milestones, setMilestones] = useState<Milestone[]>([
@@ -34,15 +61,12 @@ export default function PostProjectPage() {
     { title: '', definitionOfDone: '', paymentPercentage: 33.34, order: 3 },
   ]);
 
-  const [error, setError] = useState('');
+  const [error,     setError]     = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value as SkillType,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
   };
 
@@ -54,449 +78,393 @@ export default function PostProjectPage() {
   };
 
   const addMilestone = () => {
-    if (milestones.length >= 5) {
-      setError('Maximum 5 milestones allowed');
-      return;
-    }
-    const currentTotal = calculateTotalPercentage();
-    const remaining = 100 - currentTotal;
-    const newPercentage = remaining > 0 ? remaining : 0;
-    
-    setMilestones([
-      ...milestones,
-      { title: '', definitionOfDone: '', paymentPercentage: newPercentage, order: milestones.length + 1 },
-    ]);
+    if (milestones.length >= 5) { setError('Maximum 5 milestones allowed'); return; }
+    const remaining = 100 - calculateTotal();
+    setMilestones([...milestones, { title: '', definitionOfDone: '', paymentPercentage: remaining > 0 ? remaining : 0, order: milestones.length + 1 }]);
   };
 
   const removeMilestone = (index: number) => {
-    if (milestones.length <= 3) {
-      setError('At least 3 milestones are required');
-      return;
-    }
-    const removedPercentage = milestones[index].paymentPercentage;
-    const updated = milestones.filter((_, i) => i !== index);
-    updated.forEach((m, i) => {
-      m.order = i + 1;
-    });
-    if (updated.length > 0) {
-      updated[0].paymentPercentage += removedPercentage;
-    }
+    if (milestones.length <= 3) { setError('At least 3 milestones are required'); return; }
+    const removedPct = milestones[index].paymentPercentage;
+    const updated    = milestones.filter((_, i) => i !== index).map((m, i) => ({ ...m, order: i + 1 }));
+    if (updated.length > 0) updated[0].paymentPercentage += removedPct;
     setMilestones(updated);
   };
 
-  const calculateTotalPercentage = () => {
-    return milestones.reduce((sum, m) => sum + (m.paymentPercentage || 0), 0);
-  };
+  const calculateTotal = () => milestones.reduce((s, m) => s + (m.paymentPercentage || 0), 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.title.trim()) {
-      setError('Project title is required');
-      return;
-    }
+    if (!formData.title.trim())                          { setError('Project title is required'); return; }
+    if (!formData.description.trim())                    { setError('Project description is required'); return; }
+    if (!formData.budget || parseFloat(formData.budget) <= 0) { setError('Valid budget is required'); return; }
+    if (!formData.deadline)                              { setError('Deadline is required'); return; }
 
-    if (!formData.description.trim()) {
-      setError('Project description is required');
-      return;
-    }
-
-    if (!formData.budget || parseFloat(formData.budget) <= 0) {
-      setError('Valid budget is required');
-      return;
-    }
-
-    if (!formData.deadline) {
-      setError('Deadline is required');
-      return;
-    }
-
-    const totalPercentage = calculateTotalPercentage();
-    if (Math.abs(totalPercentage - 100) > 0.01) {
-      setError(`Milestone percentages must sum to 100% (currently ${totalPercentage.toFixed(2)}%)`);
+    const total = calculateTotal();
+    if (Math.abs(total - 100) > 0.01) {
+      setError(`Milestone percentages must sum to 100% (currently ${total.toFixed(2)}%)`);
       return;
     }
 
     for (let i = 0; i < milestones.length; i++) {
-      const m = milestones[i];
-      if (!m.title.trim()) {
-        setError(`Milestone ${i + 1} title is required`);
-        return;
-      }
-      if (!m.definitionOfDone.trim()) {
-        setError(`Milestone ${i + 1} definition of done is required`);
-        return;
-      }
-      if (m.paymentPercentage <= 0 || m.paymentPercentage > 100) {
-        setError(`Milestone ${i + 1} payment percentage must be between 0 and 100`);
-        return;
-      }
+      if (!milestones[i].title.trim())           { setError(`Milestone ${i + 1} title is required`); return; }
+      if (!milestones[i].definitionOfDone.trim()) { setError(`Milestone ${i + 1} definition of done is required`); return; }
+      if (milestones[i].paymentPercentage <= 0)  { setError(`Milestone ${i + 1} percentage must be greater than 0`); return; }
     }
 
     setIsLoading(true);
-
     try {
-      const response = await fetch('/api/project', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: formData.title,
+      const res = await fetch('/api/project', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          title:       formData.title,
           description: formData.description,
-          budget: parseFloat(formData.budget),
-          deadline: new Date(formData.deadline).toISOString(),
-          skillType: formData.skillType,
-          milestones: milestones.map((m) => ({
-            title: m.title,
-            definitionOfDone: m.definitionOfDone,
+          budget:      parseFloat(formData.budget),
+          deadline:    new Date(formData.deadline).toISOString(),
+          skillType:   formData.skillType,
+          milestones:  milestones.map(m => ({
+            title:             m.title,
+            definitionOfDone:  m.definitionOfDone,
             paymentPercentage: m.paymentPercentage,
-            order: m.order,
+            order:             m.order,
           })),
         }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to create project');
-        setIsLoading(false);
-        return;
-      }
-
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to create project'); setIsLoading(false); return; }
       router.push(`/client/projects/${data.project.id}`);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred. Please try again.';
-      setError(errorMessage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
       setIsLoading(false);
     }
   };
 
-  const totalPercentage = calculateTotalPercentage();
-  const isValidPercentage = Math.abs(totalPercentage - 100) < 0.01;
+  const total            = calculateTotal();
+  const isValidTotal     = Math.abs(total - 100) < 0.01;
+  const budgetNum        = parseFloat(formData.budget) || 0;
 
   return (
-    <>
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Typography variant="h1" size="3xl" weight="bold" className="mb-2">
-              Post a New Project
-            </Typography>
-            <Typography variant="p" size="lg" color="muted">
-              Create a project with clear milestones and find the perfect developer
-            </Typography>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={isLoading}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back
-          </Button>
+    <div className="max-w-3xl mx-auto space-y-8 pb-16">
+
+      {/* Back */}
+      <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}>
+        <button onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-sm transition-colors group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          Back
+        </button>
+      </motion.div>
+
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#C0C0C0] via-[#DCDCDC] to-[#F0F0F0] p-8 md:p-12 shadow-2xl shadow-slate-400/20 border border-white/40"
+      >
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-400/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
         </div>
+        <div className="relative z-10 flex items-center gap-6">
+          <div className="w-16 h-16 rounded-[1.5rem] bg-white border border-white/80 flex items-center justify-center shadow-sm shrink-0">
+            <FileText className="w-8 h-8 text-slate-600" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">Post a Project</h1>
+            <p className="text-sm text-slate-600 mt-1">Define your scope with clear milestones and find the perfect developer.</p>
+          </div>
+        </div>
+      </motion.header>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Error Message */}
-          {error && (
-            <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <Typography variant="p" className="text-red-600 dark:text-red-400">
-                    {error}
-                  </Typography>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+      <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Project Details */}
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <CardTitle>Project Details</CardTitle>
-                  <Typography variant="p" size="sm" color="muted">
-                    Describe your project requirements
-                  </Typography>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Input
-                label="Project Title"
+        {/* Error */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 p-4 rounded-2xl bg-red-50 border border-red-100"
+          >
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-sm font-medium text-red-600">{error}</p>
+          </motion.div>
+        )}
+
+        {/* Project Details */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden"
+        >
+          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 1</p>
+              <h2 className="text-lg font-black text-slate-900">Project Details</h2>
+            </div>
+          </div>
+
+          <div className="px-8 py-7 space-y-6">
+            <div>
+              <Label>Project Title</Label>
+              <input
                 type="text"
                 name="title"
                 placeholder="e.g., Build a React E-commerce Website"
                 value={formData.title}
                 onChange={handleChange}
-                required
                 disabled={isLoading}
+                className={INPUT_BASE}
               />
+            </div>
 
-              <Textarea
-                label="Project Description"
+            <div>
+              <Label>Project Description</Label>
+              <textarea
                 name="description"
-                placeholder="Describe your project in detail, including key features, technical requirements, and any specific preferences..."
+                placeholder="Describe your project in detail — key features, technical requirements, and any specific preferences..."
                 value={formData.description}
                 onChange={handleChange}
-                required
                 disabled={isLoading}
-                rows={6}
+                rows={5}
+                className={cn(INPUT_BASE, 'resize-none')}
               />
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label="Budget ($)"
-                  type="number"
-                  name="budget"
-                  placeholder="5000.00"
-                  value={formData.budget}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  min="0"
-                  step="0.01"
-                />
-
-                <Input
-                  label="Deadline"
-                  type="date"
-                  name="deadline"
-                  value={formData.deadline}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-
-                <Select
-                  label="Skill Type"
-                  name="skillType"
-                  value={formData.skillType}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  options={[
-                    { value: 'Frontend', label: 'Frontend Development' },
-                    { value: 'Backend', label: 'Backend Development' },
-                    { value: 'Fullstack', label: 'Fullstack Development' },
-                    { value: 'UI/UX', label: 'UI/UX Design' },
-                  ]}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Milestones (Scope Bar) */}
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <CardTitle>Scope Bar Milestones</CardTitle>
-                    <Typography variant="p" size="sm" color="muted">
-                      Break down your project into 3-5 measurable milestones
-                    </Typography>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Budget ($)</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="number"
+                    name="budget"
+                    placeholder="5000.00"
+                    value={formData.budget}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    min="0"
+                    step="0.01"
+                    className={cn(INPUT_BASE, 'pl-9')}
+                  />
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addMilestone}
-                  disabled={isLoading || milestones.length >= 5}
-                  className="hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-500"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Milestone
-                </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {milestones.map((milestone, index) => (
-                <Card key={index} className="border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors">
-                  <CardHeader className="bg-slate-50 dark:bg-slate-900">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                          {index + 1}
-                        </div>
-                        <CardTitle className="text-lg">Milestone {index + 1}</CardTitle>
-                      </div>
-                      {milestones.length > 3 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeMilestone(index)}
-                          disabled={isLoading}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Remove
-                        </Button>
-                      )}
+
+              <div>
+                <Label>Deadline</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="date"
+                    name="deadline"
+                    value={formData.deadline}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    min={new Date().toISOString().split('T')[0]}
+                    className={cn(INPUT_BASE, 'pl-9')}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Skill Type</Label>
+                <div className="relative">
+                  <select
+                    name="skillType"
+                    value={formData.skillType}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className={cn(INPUT_BASE, 'appearance-none pr-9 cursor-pointer')}
+                  >
+                    {SKILL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Milestones */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden"
+        >
+          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                <Target className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 2</p>
+                <h2 className="text-lg font-black text-slate-900">Scope Bar Milestones</h2>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={addMilestone}
+              disabled={isLoading || milestones.length >= 5}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Plus className="w-4 h-4" /> Add Milestone
+            </button>
+          </div>
+
+          <div className="px-8 py-7 space-y-4">
+            <p className="text-xs text-slate-500 font-medium -mt-2 mb-2">
+              Break down your project into 3–5 measurable milestones. Percentages must total 100%.
+            </p>
+
+            {milestones.map((ms, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="bg-slate-50 rounded-[2rem] border border-slate-100 overflow-hidden"
+              >
+                {/* Milestone header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black">
+                      {index + 1}
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
-                    <Input
-                      label="Milestone Title"
+                    <p className="font-black text-sm text-slate-900">Milestone {index + 1}</p>
+                  </div>
+                  {milestones.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => removeMilestone(index)}
+                      disabled={isLoading}
+                      className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-xl transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove
+                    </button>
+                  )}
+                </div>
+
+                {/* Milestone fields */}
+                <div className="px-6 py-5 space-y-4">
+                  <div>
+                    <Label>Milestone Title</Label>
+                    <input
                       type="text"
                       placeholder="e.g., User Authentication System"
-                      value={milestone.title}
-                      onChange={(e) => handleMilestoneChange(index, 'title', e.target.value)}
-                      required
+                      value={ms.title}
+                      onChange={e => handleMilestoneChange(index, 'title', e.target.value)}
                       disabled={isLoading}
+                      className={INPUT_BASE}
                     />
+                  </div>
 
-                    <Textarea
-                      label="Definition of Done"
-                      placeholder="Be specific and measurable (e.g., 'All login tests pass with 100% coverage', 'API endpoints return proper status codes', 'UI matches Figma designs')"
-                      value={milestone.definitionOfDone}
-                      onChange={(e) => handleMilestoneChange(index, 'definitionOfDone', e.target.value)}
-                      required
+                  <div>
+                    <Label>Definition of Done</Label>
+                    <textarea
+                      placeholder="Objective, measurable criteria for completion (e.g., 'All login tests pass with 100% coverage')"
+                      value={ms.definitionOfDone}
+                      onChange={e => handleMilestoneChange(index, 'definitionOfDone', e.target.value)}
                       disabled={isLoading}
                       rows={3}
-                      helperText="Objective, measurable criteria for completion"
+                      className={cn(INPUT_BASE, 'resize-none')}
                     />
-
-                    <div className="flex items-end gap-4">
-                      <div className="flex-1">
-                        <Input
-                          label="Payment Percentage (%)"
-                          type="number"
-                          placeholder="33.33"
-                          value={milestone.paymentPercentage || ''}
-                          onChange={(e) =>
-                            handleMilestoneChange(index, 'paymentPercentage', parseFloat(e.target.value) || 0)
-                          }
-                          required
-                          disabled={isLoading}
-                          min="0"
-                          max="100"
-                          step="0.01"
-                        />
-                      </div>
-                      <div className="pb-2">
-                        <Typography variant="p" size="sm" color="muted">
-                          = ${formData.budget ? ((parseFloat(formData.budget) * (milestone.paymentPercentage || 0)) / 100).toFixed(2) : '0.00'}
-                        </Typography>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {/* Total Percentage Display */}
-              <Card className={cn(
-                "border-2 transition-colors",
-                isValidPercentage 
-                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20" 
-                  : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
-              )}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {isValidPercentage ? (
-                        <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                      )}
-                      <Typography variant="p" size="sm" weight="semibold">
-                        Total Payment Percentage:
-                      </Typography>
-                    </div>
-                    <Typography
-                      variant="h3"
-                      size="2xl"
-                      weight="bold"
-                      className={cn(
-                        isValidPercentage
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-orange-600 dark:text-orange-400'
-                      )}
-                    >
-                      {totalPercentage.toFixed(2)}%
-                    </Typography>
                   </div>
-                  {!isValidPercentage && (
-                    <Typography variant="p" size="xs" color="muted" className="mt-2 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Milestone percentages must sum to exactly 100%
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
 
-          {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-4 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => router.back()}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
-              isLoading={isLoading}
-              disabled={isLoading || !isValidPercentage}
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating Project...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Create Project
-                </>
-              )}
-            </Button>
+                  <div className="flex items-end gap-4">
+                    <div className="flex-1">
+                      <Label>Payment Percentage (%)</Label>
+                      <input
+                        type="number"
+                        placeholder="33.33"
+                        value={ms.paymentPercentage || ''}
+                        onChange={e => handleMilestoneChange(index, 'paymentPercentage', parseFloat(e.target.value) || 0)}
+                        disabled={isLoading}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className={INPUT_BASE}
+                      />
+                    </div>
+                    {budgetNum > 0 && (
+                      <div className="pb-1 shrink-0">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Amount</p>
+                        <p className="text-sm font-black text-slate-900">
+                          ${((budgetNum * (ms.paymentPercentage || 0)) / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Percentage total */}
+            <div className={cn(
+              'flex items-center justify-between px-6 py-4 rounded-2xl border-2 transition-colors',
+              isValidTotal
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-amber-50 border-amber-200'
+            )}>
+              <div className="flex items-center gap-2">
+                {isValidTotal
+                  ? <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  : <AlertCircle className="w-5 h-5 text-amber-600" />
+                }
+                <p className={cn('text-sm font-bold', isValidTotal ? 'text-emerald-700' : 'text-amber-700')}>
+                  {isValidTotal ? 'Percentages sum to 100% — ready to submit' : 'Milestone percentages must sum to exactly 100%'}
+                </p>
+              </div>
+              <p className={cn('text-2xl font-black', isValidTotal ? 'text-emerald-700' : 'text-amber-700')}>
+                {total.toFixed(2)}%
+              </p>
+            </div>
           </div>
-        </form>
-      </div>
-    </>
+        </motion.div>
+
+        {/* Review info */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex items-start gap-3 p-5 rounded-2xl bg-slate-50 border border-slate-100"
+        >
+          <Layers className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Your project will be created as a <span className="font-bold text-slate-700">Draft</span> and only visible to developers once you publish it. You can review and edit all details before publishing from your Projects page.
+          </p>
+        </motion.div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            disabled={isLoading}
+            className="px-6 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isLoading || !isValidTotal}
+            className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-xl shadow-slate-900/10"
+          >
+            {isLoading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Creating Project…</>
+            ) : (
+              <><FileText className="w-4 h-4" /> Create Project</>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

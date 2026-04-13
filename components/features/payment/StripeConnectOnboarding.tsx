@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Typography, Badge } from '@/components/ui';
-import { cn } from '@/lib/utils';
+import { AlertCircle, CheckCircle, ExternalLink, CreditCard, Zap, Building2 } from 'lucide-react';
 
 interface StripeConnectOnboardingProps {
   accountId?: string | null;
@@ -25,7 +24,6 @@ export default function StripeConnectOnboarding({
 }: StripeConnectOnboardingProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
   const [status, setStatus] = useState({
     connected: !!accountId,
     accountId: accountId || null,
@@ -36,16 +34,16 @@ export default function StripeConnectOnboarding({
     if (accountId && !onboardingComplete && onCheckStatus) {
       checkStatus();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId, onboardingComplete]);
 
   const checkStatus = async () => {
     if (!onCheckStatus) return;
     setIsChecking(true);
     try {
-      const newStatus = await onCheckStatus();
-      setStatus(newStatus);
+      setStatus(await onCheckStatus());
     } catch (error) {
-      console.error('Error checking status:', error);
+      console.error('Error checking Stripe status:', error);
     } finally {
       setIsChecking(false);
     }
@@ -56,133 +54,120 @@ export default function StripeConnectOnboarding({
     setIsLoading(true);
     try {
       const result = await onStartOnboarding();
-      setOnboardingUrl(result.onboardingUrl);
-      // Redirect to Stripe onboarding
       window.location.href = result.onboardingUrl;
     } catch (error) {
-      console.error('Error starting onboarding:', error);
-    } finally {
+      console.error('Error starting Stripe onboarding:', error);
       setIsLoading(false);
     }
   };
 
-  const handleOpenDashboard = () => {
-    // This would typically open Stripe Connect dashboard
-    // For now, we'll just show a message
-    alert('Stripe Connect dashboard would open here. Implement the login link API call.');
-  };
+  const base = `bg-white border rounded-[2.5rem] shadow-sm overflow-hidden ${className ?? ''}`;
 
+  // Already fully connected
   if (status.onboardingComplete) {
     return (
-      <Card className={cn('', className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Stripe Connect
-            <Badge variant="success" size="sm">
-              Connected
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            Your Stripe Connect account is set up and ready to receive payments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-            <Typography variant="p" size="sm" className="text-green-600 dark:text-green-400">
-              ✓ Your account is verified and ready for payouts.
-            </Typography>
+      <div className={`${base} border-slate-100`}>
+        <div className="px-8 py-6 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-emerald-600" />
           </div>
-          <Button variant="outline" onClick={handleOpenDashboard}>
-            Open Stripe Dashboard
-          </Button>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Stripe Connect</p>
+            <p className="text-sm font-bold text-slate-900">Account connected — ready to receive payouts</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
+  // Connected but onboarding incomplete
   if (status.connected && !status.onboardingComplete) {
     return (
-      <Card className={cn('', className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Stripe Connect
-            <Badge variant="warning" size="sm">
-              In Progress
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            Complete your Stripe Connect onboarding to receive payments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
-            <Typography variant="p" size="sm" className="text-yellow-600 dark:text-yellow-400">
-              ⚠ Your Stripe Connect account is being set up. Please complete the onboarding process.
-            </Typography>
+      <div className={`${base} border-amber-100`}>
+        <div className="px-8 py-6 border-b border-slate-100">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Stripe Connect</p>
+          <h2 className="text-lg font-black text-slate-900">Complete your payout setup</h2>
+        </div>
+        <div className="px-8 py-6 space-y-5">
+          <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-sm font-medium text-amber-700">
+              Your Stripe account is linked but setup isn&apos;t complete. Finish onboarding to start receiving payouts.
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              variant="primary"
+            <button
               onClick={handleStartOnboarding}
-              isLoading={isLoading}
               disabled={isLoading}
+              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition-colors disabled:opacity-50"
             >
-              Continue Onboarding
-            </Button>
-            <Button
-              variant="outline"
+              {isLoading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Redirecting…
+                </>
+              ) : (
+                <>Continue Setup <ExternalLink className="w-4 h-4" /></>
+              )}
+            </button>
+            <button
               onClick={checkStatus}
-              isLoading={isChecking}
               disabled={isChecking}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
-              Check Status
-            </Button>
+              {isChecking
+                ? <span className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                : 'Check Status'}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
+  // Not yet connected — setup CTA
   return (
-    <Card className={cn('', className)}>
-      <CardHeader>
-        <CardTitle>Stripe Connect Setup</CardTitle>
-        <CardDescription>
-          Connect your Stripe account to receive payments from completed projects.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Typography variant="p" size="sm">
-            To receive payments on Webbidev, you need to connect your Stripe account. This allows
-            us to securely transfer funds to you when milestones are approved.
-          </Typography>
-          <Typography variant="p" size="sm" color="muted">
-            The setup process is quick and secure. You'll be redirected to Stripe to complete the
-            onboarding.
-          </Typography>
+    <div className={`${base} border-slate-100`}>
+      <div className="px-8 py-6 border-b border-slate-100">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payout Setup</p>
+        <h2 className="text-lg font-black text-slate-900">Connect Stripe to get paid</h2>
+      </div>
+      <div className="px-8 py-6 space-y-6">
+        <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
+          Link your Stripe account so we can transfer funds directly to you when project milestones are approved.
+          Setup is quick and fully secure — you&apos;ll be redirected to Stripe to complete it.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { icon: Building2,  label: 'Business or personal info' },
+            { icon: CreditCard, label: 'Bank account for payouts' },
+            { icon: Zap,        label: 'Tax info (if required)' },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+              <div className="w-7 h-7 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
+                <Icon className="w-3.5 h-3.5 text-slate-600" />
+              </div>
+              <span className="text-xs font-semibold text-slate-600">{label}</span>
+            </div>
+          ))}
         </div>
-        <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-900">
-          <Typography variant="h4" size="sm" weight="semibold" className="mb-2">
-            What you'll need:
-          </Typography>
-          <ul className="list-disc list-inside space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-            <li>Business or personal information</li>
-            <li>Bank account details for payouts</li>
-            <li>Tax information (if required)</li>
-          </ul>
-        </div>
-        <Button
-          variant="primary"
+
+        <button
           onClick={handleStartOnboarding}
-          isLoading={isLoading}
           disabled={isLoading}
-          className="w-full"
+          className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition-colors disabled:opacity-50"
         >
-          Start Stripe Connect Setup
-        </Button>
-      </CardContent>
-    </Card>
+          {isLoading ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Redirecting to Stripe…
+            </>
+          ) : (
+            <>Start Stripe Setup <ExternalLink className="w-4 h-4" /></>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
-

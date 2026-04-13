@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, Badge, Typography } from '@/components/ui';
-import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { Receipt } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -13,14 +13,8 @@ interface Transaction {
   releasedAt?: string | null;
   refundedAt?: string | null;
   createdAt: string;
-  project?: {
-    id: string;
-    title: string;
-  };
-  milestone?: {
-    id: string;
-    title: string;
-  };
+  project?: { id: string; title: string };
+  milestone?: { id: string; title: string };
 }
 
 interface PayoutHistoryTableProps {
@@ -28,167 +22,84 @@ interface PayoutHistoryTableProps {
   className?: string;
 }
 
-export default function PayoutHistoryTable({
-  transactions,
-  className,
-}: PayoutHistoryTableProps) {
-  const getStatusBadgeVariant = (status: Transaction['status']) => {
-    switch (status) {
-      case 'RELEASED':
-        return 'success';
-      case 'HELD_IN_ESCROW':
-        return 'primary';
-      case 'PENDING':
-        return 'secondary';
-      case 'FAILED':
-        return 'danger';
-      case 'REFUNDED':
-        return 'warning';
-      default:
-        return 'secondary';
-    }
-  };
+const STATUS_CONFIG: Record<Transaction['status'], { label: string; className: string }> = {
+  RELEASED:      { label: 'Released',  className: 'bg-emerald-100 text-emerald-700' },
+  HELD_IN_ESCROW:{ label: 'In Escrow', className: 'bg-amber-100 text-amber-700' },
+  PENDING:       { label: 'Pending',   className: 'bg-slate-100 text-slate-600' },
+  FAILED:        { label: 'Failed',    className: 'bg-red-100 text-red-600' },
+  REFUNDED:      { label: 'Refunded',  className: 'bg-orange-100 text-orange-600' },
+};
 
-  const getStatusLabel = (status: Transaction['status']) => {
-    switch (status) {
-      case 'PENDING':
-        return 'Pending';
-      case 'HELD_IN_ESCROW':
-        return 'In Escrow';
-      case 'RELEASED':
-        return 'Released';
-      case 'REFUNDED':
-        return 'Refunded';
-      case 'FAILED':
-        return 'Failed';
-      default:
-        return status;
-    }
-  };
-
-  const totalEarnings = transactions
-    .filter((t) => t.status === 'RELEASED')
-    .reduce((sum, t) => sum + Number(t.developerPayout), 0);
-
-  const pendingEarnings = transactions
-    .filter((t) => t.status === 'HELD_IN_ESCROW')
-    .reduce((sum, t) => sum + Number(t.developerPayout), 0);
-
+export default function PayoutHistoryTable({ transactions, className }: PayoutHistoryTableProps) {
   return (
-    <div className={cn('space-y-6', className)}>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <Typography variant="p" size="sm" color="muted" className="mb-1">
-              Total Earnings
-            </Typography>
-            <Typography variant="h2" size="2xl" weight="bold" className="text-green-600 dark:text-green-400">
-              {formatCurrency(totalEarnings)}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <Typography variant="p" size="sm" color="muted" className="mb-1">
-              Pending Payouts
-            </Typography>
-            <Typography variant="h2" size="2xl" weight="bold" className="text-yellow-600 dark:text-yellow-400">
-              {formatCurrency(pendingEarnings)}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <Typography variant="p" size="sm" color="muted" className="mb-1">
-              Total Transactions
-            </Typography>
-            <Typography variant="h2" size="2xl" weight="bold">
-              {transactions.length}
-            </Typography>
-          </CardContent>
-        </Card>
+    <div className={`bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden ${className ?? ''}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">History</p>
+          <h2 className="text-lg font-black text-slate-900">
+            Payout History
+            {transactions.length > 0 && (
+              <span className="ml-2 text-sm font-bold text-slate-400">({transactions.length})</span>
+            )}
+          </h2>
+        </div>
       </div>
 
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payout History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <div className="py-8 text-center">
-              <Typography variant="p" color="muted">
-                No transactions yet.
-              </Typography>
+      <div className="px-8 py-6">
+        {transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+              <Receipt className="w-7 h-7 text-slate-400" />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Project
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Milestone
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-foreground">
-                      Amount
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-foreground">
-                      Fee
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-foreground">
-                      Payout
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
-                      <td className="px-4 py-3 text-sm">
-                        {transaction.project?.title || 'N/A'}
+            <p className="text-sm font-black text-slate-900 mb-1">No transactions yet</p>
+            <p className="text-xs text-slate-400 font-medium max-w-xs">
+              Completed milestones and project payouts will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="pb-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Project</th>
+                  <th className="pb-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Milestone</th>
+                  <th className="pb-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
+                  <th className="pb-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Fee</th>
+                  <th className="pb-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Payout</th>
+                  <th className="pb-3 pl-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="pb-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {transactions.map((t) => {
+                  const status = STATUS_CONFIG[t.status];
+                  const date = t.releasedAt ?? t.heldAt ?? t.createdAt;
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 pr-4 font-semibold text-slate-900 max-w-[180px] truncate">
+                        {t.project?.title ?? <span className="text-slate-300">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        {transaction.milestone?.title || 'N/A'}
+                      <td className="py-3.5 pr-4 text-slate-500 max-w-[160px] truncate">
+                        {t.milestone?.title ?? <span className="text-slate-300">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(transaction.amount)}
+                      <td className="py-3.5 text-right text-slate-600">{formatCurrency(t.amount)}</td>
+                      <td className="py-3.5 text-right text-slate-400">{formatCurrency(t.webbidevFee)}</td>
+                      <td className="py-3.5 text-right font-black text-slate-900">{formatCurrency(t.developerPayout)}</td>
+                      <td className="py-3.5 pl-4">
+                        <span className={`inline-flex px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${status.className}`}>
+                          {status.label}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-zinc-600 dark:text-zinc-400">
-                        {formatCurrency(transaction.webbidevFee)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-green-600 dark:text-green-400">
-                        {formatCurrency(transaction.developerPayout)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={getStatusBadgeVariant(transaction.status)} size="sm">
-                          {getStatusLabel(transaction.status)}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        {transaction.releasedAt
-                          ? formatDate(transaction.releasedAt)
-                          : transaction.heldAt
-                          ? formatDate(transaction.heldAt)
-                          : formatDate(transaction.createdAt)}
-                      </td>
+                      <td className="py-3.5 text-slate-400 whitespace-nowrap">{formatDate(date)}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

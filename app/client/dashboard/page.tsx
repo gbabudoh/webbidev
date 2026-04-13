@@ -1,366 +1,410 @@
-import { requireClient } from '@/lib/auth-server';
-import { Badge, Button } from '@/components/ui';
+'use client';
+
 import Link from 'next/link';
-import { 
-  Zap, 
-  DollarSign, 
-  Search, 
-  CheckCircle, 
-  Plus, 
-  FileText, 
-  ArrowRight, 
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  Zap,
+  DollarSign,
+  Search,
+  CheckCircle,
+  Plus,
+  FileText,
+  ArrowRight,
   Briefcase,
   Users,
   CreditCard,
-  HelpCircle,
+  MessageSquare,
   Sparkles,
   Target,
   Shield,
   Clock,
   Folder,
-  Layout
+  LayoutDashboard,
+  ChevronRight,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export default async function ClientDashboardPage() {
-  const user = await requireClient();
+const stats = [
+  {
+    name: 'Active Projects',
+    value: '0',
+    change: 'In Progress',
+    icon: Zap,
+    gradient: 'from-blue-500 to-indigo-600',
+    description: 'Projects currently active',
+  },
+  {
+    name: 'Total Spent',
+    value: '$0',
+    change: 'Lifetime',
+    icon: DollarSign,
+    gradient: 'from-emerald-500 to-teal-600',
+    description: 'Total investment to date',
+  },
+  {
+    name: 'Open Projects',
+    value: '0',
+    change: 'Hiring',
+    icon: Search,
+    gradient: 'from-purple-500 to-pink-600',
+    description: 'Awaiting developer proposals',
+  },
+  {
+    name: 'Completed',
+    value: '0',
+    change: 'Delivered',
+    icon: CheckCircle,
+    gradient: 'from-orange-500 to-red-600',
+    description: 'Successfully delivered',
+  },
+];
 
-  const stats = [
-    {
-      name: 'Active Projects',
-      value: '0',
-      badge: 'In Progress',
-      badgeVariant: 'primary' as const,
-      description: 'Projects currently active',
-      icon: Zap,
-      gradient: 'from-blue-500 to-cyan-500',
-      bgGradient: 'from-blue-500/10 to-cyan-500/10'
-    },
-    {
-      name: 'Total Spent',
-      value: '$0',
-      badge: null,
-      badgeVariant: null,
-      description: 'Lifetime investment',
-      icon: DollarSign,
-      gradient: 'from-emerald-500 to-green-500',
-      bgGradient: 'from-emerald-500/10 to-green-500/10'
-    },
-    {
-      name: 'Open Projects',
-      value: '0',
-      badge: 'Hiring',
-      badgeVariant: 'warning' as const,
-      description: 'Looking for developers',
-      icon: Search,
-      gradient: 'from-purple-500 to-pink-500',
-      bgGradient: 'from-purple-500/10 to-pink-500/10'
-    },
-    {
-      name: 'Completed',
-      value: '0',
-      badge: 'Done',
-      badgeVariant: 'success' as const,
-      description: 'Successfully delivered',
-      icon: CheckCircle,
-      gradient: 'from-orange-500 to-red-500',
-      bgGradient: 'from-orange-500/10 to-red-500/10'
-    }
-  ];
+const quickLinks = [
+  {
+    name: 'Post a Project',
+    description: 'Define scope and find developers',
+    icon: Plus,
+    href: '/client/post',
+    bg: 'bg-blue-50',
+    text: 'text-blue-600',
+  },
+  {
+    name: 'My Projects',
+    description: 'View and manage all your projects',
+    icon: Briefcase,
+    href: '/client/projects',
+    bg: 'bg-purple-50',
+    text: 'text-purple-600',
+  },
+  {
+    name: 'Browse Talent',
+    description: 'Explore developer profiles',
+    icon: Users,
+    href: '/talent',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-600',
+  },
+  {
+    name: 'Messages',
+    description: 'Conversations with your developers',
+    icon: MessageSquare,
+    href: '/client/messages',
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-600',
+  },
+  {
+    name: 'Project Workspace',
+    description: 'Files and resources for your project',
+    icon: Folder,
+    href: '/dashboard/user-bucket',
+    bg: 'bg-amber-50',
+    text: 'text-amber-600',
+  },
+  {
+    name: 'Project Board',
+    description: 'Track milestones with a Kanban board',
+    icon: LayoutDashboard,
+    href: '/dashboard/user-bucket/board',
+    bg: 'bg-sky-50',
+    text: 'text-sky-600',
+  },
+  {
+    name: 'Billing',
+    description: 'Payment history and invoices',
+    icon: CreditCard,
+    href: '/client/billing',
+    bg: 'bg-rose-50',
+    text: 'text-rose-600',
+  },
+];
 
-  const quickActions = [
-    {
-      name: 'Post Project',
-      description: 'Find developers',
-      href: '/client/post',
-      icon: Plus,
-      gradient: 'from-blue-500 to-cyan-500',
-      hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20',
-      hoverBorder: 'hover:border-blue-500'
-    },
-    {
-      name: 'userBucket',
-      description: 'Project resources',
-      href: '/dashboard/user-bucket',
-      icon: Folder,
-      gradient: 'from-amber-500 to-orange-500',
-      hoverBg: 'hover:bg-amber-50 dark:hover:bg-amber-900/20',
-      hoverBorder: 'hover:border-amber-500'
-    },
-    {
-      name: 'userBucket Board',
-      description: 'Project board',
-      href: '/dashboard/user-bucket',
-      icon: Layout,
-      gradient: 'from-blue-600 to-indigo-600',
-      hoverBg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20',
-      hoverBorder: 'hover:border-blue-500'
-    },
-    {
-      name: 'My Projects',
-      description: 'View all projects',
-      href: '/client/projects',
-      icon: Briefcase,
-      gradient: 'from-purple-500 to-pink-500',
-      hoverBg: 'hover:bg-purple-50 dark:hover:bg-purple-900/20',
-      hoverBorder: 'hover:border-purple-500'
-    },
-    {
-      name: 'Browse Talent',
-      description: 'Find developers',
-      href: '/talent',
-      icon: Users,
-      gradient: 'from-emerald-500 to-green-500',
-      hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
-      hoverBorder: 'hover:border-emerald-500'
-    },
-    {
-      name: 'Billing',
-      description: 'Payment history',
-      href: '/client/billing',
-      icon: CreditCard,
-      gradient: 'from-orange-500 to-red-500',
-      hoverBg: 'hover:bg-orange-50 dark:hover:bg-orange-900/20',
-      hoverBorder: 'hover:border-orange-500'
-    }
-  ];
+const gettingStartedSteps = [
+  {
+    step: 1,
+    title: 'Post Your Project',
+    description: 'Define your project scope with 3–5 clear milestones and a budget.',
+    icon: FileText,
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+  },
+  {
+    step: 2,
+    title: 'Review Proposals',
+    description: 'Browse proposals from vetted developers and choose the best fit.',
+    icon: Search,
+    iconBg: 'bg-purple-50',
+    iconColor: 'text-purple-600',
+  },
+  {
+    step: 3,
+    title: 'Approve Milestones',
+    description: 'Release payments as each milestone is delivered and approved.',
+    icon: CheckCircle,
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+  },
+];
 
-  const gettingStartedSteps = [
-    {
-      step: 1,
-      title: 'Post Your Project',
-      description: 'Define your project scope with 3-5 clear milestones',
-      color: 'bg-blue-500'
-    },
-    {
-      step: 2,
-      title: 'Review Proposals',
-      description: 'Browse proposals from specialized developers',
-      color: 'bg-cyan-500'
-    },
-    {
-      step: 3,
-      title: 'Approve Milestones',
-      description: 'Release payments as work is completed',
-      color: 'bg-purple-500'
-    }
-  ];
+export default function ClientDashboardPage() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse pb-12">
+        <div className="h-52 bg-slate-200 rounded-[2.5rem]" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-32 bg-slate-200 rounded-[2rem]" />)}
+        </div>
+      </div>
+    );
+  }
+
+  const firstName = user?.name?.split(' ')[0] || 'Client';
 
   return (
-    <>
-      <div className="space-y-8">
-        {/* Header Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#C0C0C0] via-[#DCDCDC] to-[#F0F0F0] p-8 shadow-2xl shadow-slate-400/20 border border-white/40">
-          {/* Background Effects */}
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(59,130,246,0.2),transparent_50%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(139,92,246,0.15),transparent_50%)]" />
-          </div>
-          
-          <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-600">Client Dashboard</span>
-              </div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-2">
-                Welcome back, {user.name || 'Client'}!
-              </h1>
-              <p className="text-lg text-slate-600">
-                Manage your projects and find the perfect developers
-              </p>
-            </div>
-                <Link href="/client/post">
-                  <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-2xl px-8 py-5 sm:py-3 text-sm font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-3 mx-auto border-t border-white/20">
-                    <div className="bg-white/10 p-1 rounded-lg shrink-0 backdrop-blur-sm border border-white/10">
-                      <Plus className="w-4 h-4" />
-                    </div>
-                    <span>Post New Project</span>
-                  </Button>
-                </Link>
-          </div>
+    <div className="space-y-8 pb-12">
+
+      {/* Welcome Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#C0C0C0] via-[#DCDCDC] to-[#F0F0F0] p-8 lg:p-12 shadow-2xl shadow-slate-400/20 border border-white/40"
+      >
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-400/10 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]" />
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div 
-                key={stat.name}
-                className="relative group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-              >
-                {/* Background Gradient */}
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.bgGradient} rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-100 transition-opacity`} />
-                
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {stat.name}
-                    </span>
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-3xl font-bold text-slate-900 dark:text-white">
-                      {stat.value}
-                    </span>
-                    {stat.badge && (
-                      <Badge variant={stat.badgeVariant} size="sm">{stat.badge}</Badge>
-                    )}
-                  </div>
-                  
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {stat.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Projects */}
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Projects</h2>
-                </div>
-                <Link href="/client/projects">
-                  <Button variant="outline" size="sm" className="cursor-pointer flex items-center gap-2">
-                    View All
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-              </div>
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-blue-100 shadow-sm mb-6">
+              <Sparkles className="w-4 h-4 text-blue-500" />
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Client Dashboard</span>
             </div>
-            
-            <div className="p-8">
-              {/* Empty State */}
-              <div className="text-center py-8">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 flex items-center justify-center mx-auto mb-6">
-                  <FileText className="w-10 h-10 text-blue-500" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  No projects yet
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-                  Post your first project to find talented developers and bring your ideas to life
-                </p>
-                <Link href="/client/post">
-                  <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-2xl px-8 py-5 sm:py-3 text-sm font-bold shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-3 mx-auto border-t border-white/20">
-                    <div className="bg-white/10 p-1 rounded-lg shrink-0 backdrop-blur-sm border border-white/10">
-                      <Plus className="w-4 h-4" />
-                    </div>
-                    <span>Create Your First Project</span>
-                  </Button>
-                </Link>
-              </div>
+
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-3 tracking-tight leading-tight">
+              Welcome back, {firstName}
+            </h1>
+
+            <p className="text-lg text-slate-600 max-w-xl font-medium mb-8">
+              You have <span className="text-slate-900 font-bold">0 active projects</span>. Post a project to start finding talented developers.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <Link href="/client/post"
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl px-8 py-4 text-base font-bold shadow-xl shadow-blue-500/20 transition-all hover:-translate-y-0.5">
+                <Plus className="w-5 h-5" />
+                Post New Project
+              </Link>
+              <Link href="/client/projects"
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl px-8 py-4 text-base font-bold shadow-sm transition-all">
+                My Projects
+              </Link>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Quick Actions</h2>
-              </div>
-            </div>
-            
-            <div className="p-4">
-              <div className="space-y-2">
-                {quickActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <Link key={action.name} href={action.href} className="block">
-                      <div className={`flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 ${action.hoverBg} ${action.hoverBorder} transition-all cursor-pointer group`}>
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                          <Icon className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm text-slate-900 dark:text-white">{action.name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{action.description}</p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Getting Started Guide */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-cyan-50 to-purple-50 dark:from-blue-950/30 dark:via-cyan-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800 p-8">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-3xl" />
-          </div>
-          
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                <HelpCircle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Getting Started</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Follow these steps to post your first project</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {gettingStartedSteps.map((step) => (
-                <div key={step.step} className="flex items-start gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl p-5 border border-white/50 dark:border-slate-700/50">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-full ${step.color} text-white flex items-center justify-center font-bold shadow-lg`}>
-                    {step.step}
+          {/* Right: trust stats card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, type: 'spring' }}
+            className="hidden lg:block w-[300px] flex-shrink-0"
+          >
+            <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-6 shadow-xl space-y-4">
+              {[
+                { icon: Shield,  label: 'Secure Escrow',     sub: 'Payments protected until delivery', color: 'text-emerald-500' },
+                { icon: Clock,   label: 'Fast Matching',     sub: 'Proposals typically within 24 hrs',  color: 'text-blue-500' },
+                { icon: Target,  label: 'Scope Guarantee',   sub: 'Only pay for defined deliverables', color: 'text-purple-500' },
+              ].map(({ icon: Icon, label, sub, color }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                    <Icon className={cn('w-4 h-4', color)} />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white mb-1">
-                      {step.title}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {step.description}
-                    </p>
+                    <p className="text-sm font-black text-slate-900 leading-tight">{label}</p>
+                    <p className="text-xs text-slate-500 font-medium">{sub}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
+      </motion.div>
 
-        {/* Trust Indicators */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { icon: Shield, title: 'Secure Escrow', description: 'Your payments are protected', gradient: 'from-emerald-500 to-green-500' },
-            { icon: Clock, title: 'Fast Matching', description: 'Get proposals within 24 hours', gradient: 'from-blue-500 to-cyan-500' },
-            { icon: Target, title: 'Scope Guarantee', description: 'Only pay for defined deliverables', gradient: 'from-purple-500 to-pink-500' }
-          ].map((item) => {
-            const Icon = item.icon;
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <AnimatePresence>
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
             return (
-              <div key={item.title} className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-lg transition-all">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg`}>
-                  <Icon className="w-6 h-6 text-white" />
+              <motion.div
+                key={stat.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + index * 0.08 }}
+                whileHover={{ y: -6, scale: 1.01 }}
+                className="relative group bg-white rounded-[2rem] border border-slate-200 p-7 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden"
+              >
+                <div className={cn(
+                  'absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-[0.04] group-hover:opacity-[0.08] transition-opacity rounded-full -mr-16 -mt-16',
+                  stat.gradient
+                )} />
+
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-5">
+                    <div className={cn(
+                      'w-12 h-12 rounded-2xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 bg-gradient-to-br',
+                      stat.gradient
+                    )}>
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-wider">
+                      {stat.change}
+                    </span>
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.name}</p>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
+                    <p className="text-xs text-slate-400 font-medium pt-1">{stat.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-slate-900 dark:text-white">{item.title}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{item.description}</p>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* Recent Projects */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.6 }}
+          className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+        >
+          <div className="p-7 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">Recent Projects</h2>
+                <p className="text-sm text-slate-500 font-medium">Your most recently posted projects</p>
+              </div>
+            </div>
+            <Link href="/client/projects"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+              View All <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="p-12">
+            <div className="text-center max-w-sm mx-auto">
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 bg-blue-500/10 blur-2xl rounded-full" />
+                <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                  <Briefcase className="w-9 h-9 text-slate-400" />
                 </div>
               </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">No projects yet</h3>
+              <p className="text-slate-500 font-medium mb-8 leading-relaxed text-sm">
+                Post your first project to start receiving proposals from skilled developers.
+              </p>
+              <Link href="/client/post"
+                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl px-8 py-4 font-black transition-all hover:scale-105 shadow-xl">
+                <Plus className="w-4 h-4" /> Post Your First Project
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick Links */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.7 }}
+          className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+        >
+          <div className="p-7 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="text-lg font-black text-slate-900 tracking-tight">Quick Links</h2>
+            <p className="text-sm text-slate-500 font-medium">Jump to any section</p>
+          </div>
+          <div className="p-5 space-y-2">
+            {quickLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <motion.div key={link.name} whileHover={{ x: 6 }} className="group">
+                  <Link href={link.href}>
+                    <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-transparent hover:shadow-md transition-all cursor-pointer hover:bg-slate-50">
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform', link.bg)}>
+                        <Icon className={cn('w-5 h-5', link.text)} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-slate-900">{link.name}</p>
+                        <p className="text-xs text-slate-500 font-medium truncate">{link.description}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Getting Started */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+        className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden"
+      >
+        <div className="p-7 border-b border-slate-100 bg-slate-50/50">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">How It Works</p>
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">Getting Started</h2>
+          <p className="text-sm text-slate-500 font-medium">Three simple steps to get your project built</p>
+        </div>
+
+        <div className="p-7 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {gettingStartedSteps.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={step.step}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 + i * 0.08 }}
+                className="relative flex flex-col gap-4 p-6 rounded-[1.5rem] border border-slate-100 bg-slate-50/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center', step.iconBg)}>
+                    <Icon className={cn('w-5 h-5', step.iconColor)} />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step {step.step}</span>
+                </div>
+                <div>
+                  <p className="font-black text-slate-900 mb-1">{step.title}</p>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">{step.description}</p>
+                </div>
+                {i < gettingStartedSteps.length - 1 && (
+                  <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
+                    <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center">
+                      <ChevronRight className="w-3 h-3 text-slate-400" />
+                    </div>
+                  </div>
+                )}
+              </motion.div>
             );
           })}
         </div>
-      </div>
-    </>
+      </motion.div>
+
+    </div>
   );
 }

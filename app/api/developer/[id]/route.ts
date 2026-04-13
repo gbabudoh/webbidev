@@ -30,35 +30,26 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
+            // email intentionally excluded from public view
             createdAt: true,
           },
         },
+        portfolioProjects: {
+          orderBy: [{ featured: 'desc' }, { displayOrder: 'asc' }, { createdAt: 'desc' }],
+        },
         proposals: {
-          where: {
-            status: 'ACCEPTED',
-          },
+          where: { status: 'ACCEPTED' },
           include: {
             project: {
-              select: {
-                id: true,
-                title: true,
-                status: true,
-              },
+              select: { id: true, title: true, status: true },
             },
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
+          orderBy: { createdAt: 'desc' },
           take: 5,
         },
         transactions: {
-          where: {
-            status: 'COMPLETED',
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
+          where: { status: 'RELEASED' },
+          orderBy: { createdAt: 'desc' },
           take: 10,
         },
       },
@@ -79,7 +70,7 @@ export async function GET(
       );
     }
 
-    // Format response
+    // Format response — email is intentionally excluded from public profile
     const formattedDeveloper = {
       id: developer.id,
       userId: developer.userId,
@@ -93,16 +84,17 @@ export async function GET(
       completedProjects: developer.completedProjects,
       isVerified: developer.isVerified,
       isActive: developer.isActive,
-      user: developer.user,
+      user: {
+        id: developer.user.id,
+        name: developer.user.name,
+        // email excluded — all contact goes through the platform messaging system
+        createdAt: developer.user.createdAt,
+      },
+      portfolioProjects: developer.portfolioProjects,
       recentProjects: developer.proposals.map((p) => ({
         id: p.project.id,
         title: p.project.title,
         status: p.project.status,
-      })),
-      recentEarnings: developer.transactions.map((t) => ({
-        id: t.id,
-        amount: Number(t.amount),
-        createdAt: t.createdAt.toISOString(),
       })),
     };
 
