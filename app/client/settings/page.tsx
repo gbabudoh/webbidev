@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { requireClient } from '@/lib/auth-server';
-import DashboardLayout from '@/components/layouts/DashboardLayout';
 import DeleteAccountSection from '@/components/features/settings/DeleteAccountSection';
 import { Typography } from '@/components/ui';
 import { Settings, Shield } from 'lucide-react';
@@ -14,8 +13,7 @@ export default async function ClientSettingsPage() {
   const user = await requireClient();
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-8 pb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 pb-8">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-slate-400 mb-1">
@@ -48,6 +46,5 @@ export default async function ClientSettingsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }
