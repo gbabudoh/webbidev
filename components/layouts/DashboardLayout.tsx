@@ -15,16 +15,16 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({
   children,
   className,
-  showFooter = true,
+  showFooter = false,
 }: DashboardLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       <Header />
-      <div className="flex flex-1">
-        <Sidebar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar aria-label="Sidebar" />
         <main
           className={cn(
-            'flex-1 overflow-y-auto bg-slate-50',
+            'flex-1 overflow-y-auto bg-slate-50 custom-scrollbar',
             className
           )}
         >
