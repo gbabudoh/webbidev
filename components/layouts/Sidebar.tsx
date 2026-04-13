@@ -71,6 +71,7 @@ const CLIENT_NAV: NavGroup[] = [
       { name: 'My Profile', href: '/client/profile', icon: <User className="w-4 h-4" /> },
       { name: 'Billing', href: '/client/billing', icon: <CreditCard className="w-4 h-4" /> },
       { name: 'Verification', href: '/client/verification', icon: <ShieldCheck className="w-4 h-4" /> },
+      { name: 'Settings', href: '/client/settings', icon: <Settings className="w-4 h-4" /> },
     ],
   },
 ];
@@ -101,6 +102,7 @@ const DEVELOPER_NAV: NavGroup[] = [
       { name: 'My Profile', href: '/developer/profile', icon: <User className="w-4 h-4" /> },
       { name: 'Earnings', href: '/developer/earnings', icon: <DollarSign className="w-4 h-4" /> },
       { name: 'Verification', href: '/developer/verification', icon: <ShieldCheck className="w-4 h-4" /> },
+      { name: 'Settings', href: '/developer/settings', icon: <Settings className="w-4 h-4" /> },
     ],
   },
 ];
